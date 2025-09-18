@@ -23,3 +23,6 @@ dist-ssr
 
 # Environment files
 .env.local
+
+# Build folder
+.firebase
