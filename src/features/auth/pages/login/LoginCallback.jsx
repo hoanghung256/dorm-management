@@ -25,7 +25,6 @@ function LoginCallback() {
     const dispatch = useDispatch();
 
     useEffect(() => {
-        console.log("Authenticated user:", user);
         if (user) {
             setForm((f) => ({
                 ...f,
@@ -92,13 +91,11 @@ function LoginCallback() {
         }
     };
 
-    // Nếu đã có user trong DB
     if (fetchedUser) {
-        if (fetchedUser.role === "landlord") return navigate("/landlord/dashboard");
-        if (fetchedUser.role === "renter") return navigate("/renter/dashboard");
+        if (fetchedUser.role === "landlord") return navigate("/");
+        if (fetchedUser.role === "renter") return navigate("/");
     }
 
-    // Form tạo hồ sơ lần đầu
     return (
         <Box display="flex" justifyContent="center" mt={4} px={2}>
             <Paper elevation={3} sx={{ p: 4, maxWidth: 520, width: "100%" }}>

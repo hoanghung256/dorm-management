@@ -1,5 +1,5 @@
 function Home(params) {
-    return "home";
+    return "landing page";
 }
 
 export default Home;

@@ -1,11 +1,14 @@
-import { AppBar, Toolbar, Box, Container, Typography, IconButton, Stack } from "@mui/material";
+import { AppBar, Toolbar, Box, Container, Typography, IconButton, Stack, Button } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import { UserButton } from "@clerk/clerk-react";
 import { Outlet } from "react-router-dom";
+import useClerkUserData from "../../hooks/useClerkUserData";
 
 const NAVBAR_HEIGHT = 64;
 
 function GeneralLayout() {
+    const { user } = useClerkUserData();
+
     return (
         <Box sx={{ display: "flex", minHeight: "100vh", flexDirection: "column", bgcolor: "background.default" }}>
             <AppBar
@@ -34,8 +37,21 @@ function GeneralLayout() {
                     </Stack>
 
                     <Stack direction="row" spacing={2} alignItems="center">
-                        {/* Placeholder for future nav items */}
-                        <UserButton afterSignOutUrl="/login" />
+                        <Button variant="contained" color="primary" href="/login">
+                            Về chúng tôi
+                        </Button>
+                        {user ? (
+                            <UserButton afterSignOutUrl="/" />
+                        ) : (
+                            <>
+                                <Button variant="contained" color="primary" href="/login">
+                                    Đăng Nhập
+                                </Button>
+                                <Button variant="contained" color="primary" href="/login">
+                                    Đăng Ký
+                                </Button>
+                            </>
+                        )}
                     </Stack>
                 </Toolbar>
             </AppBar>
