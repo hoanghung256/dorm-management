@@ -18,6 +18,13 @@ jobs:
         with:
           node-version: 20
 
+      - name: Create .env.production
+        run: |
+          echo "VITE_CONVEX_DEPLOYMENT=${{ secrets.CONVEX_DEPLOYMENT }}" >> .env.production
+          echo "VITE_CLERK_PUBLISHABLE_KEY=${{ secrets.CLERK_PUBLISHABLE_KEY }}" >> .env.production
+          echo "VITE_CONVEX_URL=${{ secrets.CONVEX_URL }}" >> .env.production
+          echo "NODE_ENV=production" >> .env.production
+
       - name: Install dependencies
         run: npm install
 
