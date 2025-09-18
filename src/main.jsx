@@ -11,6 +11,8 @@ import { ClerkProvider } from "@clerk/clerk-react";
 import { ThemeProvider } from "@mui/material/styles";
 import { CssBaseline } from "@mui/material";
 import theme from "./styles/theme.jsx";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap/dist/js/bootstrap.min.js";
 
 const router = createBrowserRouter(routes);
 const store = configureStore({ reducer: rootReducer });
