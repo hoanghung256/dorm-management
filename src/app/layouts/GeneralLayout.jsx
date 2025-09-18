@@ -37,7 +37,7 @@ function GeneralLayout() {
                     </Stack>
 
                     <Stack direction="row" spacing={2} alignItems="center">
-                        <Button variant="contained" color="primary" href="/login">
+                        <Button variant="contained" color="primary" href="/about">
                             Về chúng tôi
                         </Button>
                         {user ? (
