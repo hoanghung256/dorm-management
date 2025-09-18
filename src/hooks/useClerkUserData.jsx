@@ -5,7 +5,7 @@ import { useCallback, useMemo } from "react";
  * useUserData
  * Wraps Clerk hooks to expose a convenient, memoized user object + helpers.
  */
-export function useUserData() {
+export function useClerkUserData() {
     const { isLoaded, isSignedIn, user } = useUser();
     const { getToken, signOut } = useAuth();
 
@@ -61,4 +61,4 @@ export function useUserData() {
     return data;
 }
 
-export default useUserData;
+export default useClerkUserData;

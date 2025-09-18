@@ -11,13 +11,29 @@ export const getUserByClerkId = query({
             .withIndex("by_clerk", (q) => q.eq("clerkUserId", args.clerkUserId))
             .unique();
 
+        if (user) {
+            if (user.role === "landlord") {
+                const landlordDetail = await ctx.db
+                    .query("landlords")
+                    .withIndex("by_user", (q) => q.eq("userId", user._id))
+                    .unique();
+                user.detail = landlordDetail;
+            } else if (user.role === "renter") {
+                const renterDetail = await ctx.db
+                    .query("renters")
+                    .withIndex("by_user", (q) => q.eq("userId", user._id))
+                    .unique();
+                user.detail = renterDetail;
+            }
+        }
+
         return user ?? null;
     },
 });
 
 export const createUser = mutation({
     handler: async (ctx, args) => {
-        const { clerkUserId, name, email, role, birthDate, phone, address } = args;
+        const { clerkUserId, name, email, role, birthDate, phone, hometown } = args;
         const userId = await ctx.db.insert("users", {
             clerkUserId,
             name,
@@ -25,8 +41,42 @@ export const createUser = mutation({
             role,
             birthDate,
             phone,
-            address,
+            hometown,
         });
-        return userId;
+        let user = {
+            id: userId,
+            name,
+            email,
+            role,
+            birthDate,
+            phone,
+            hometown,
+        };
+
+        if (userId) {
+            if (role === "landlord") {
+                await ctx.db.insert("landlords", {
+                    userId: userId,
+                    subscriptionTier: "Free",
+                    roomLimit: 5,
+                    overageFeePerRoom: 0,
+                });
+                user.detail = {
+                    subscriptionTier: "Free",
+                    roomLimit: 5,
+                    overageFeePerRoom: 0,
+                };
+            } else if (role === "renter") {
+                await ctx.db.insert("renters", {
+                    userId: userId,
+                    active: true,
+                });
+                user.detail = {
+                    active: true,
+                };
+            }
+        }
+
+        return user;
     },
 });
