@@ -1,11 +1,11 @@
 import AuthLayout from "../layouts/AuthLayout";
-import DefaultLayout from "../layouts/DefaultLayout";
+import GeneralLayout from "../layouts/GeneralLayout";
 import { authRoutes } from "./authRoutes";
 import { chatRoutes } from "./chatRoutes";
-import { landingRoutes } from "./ladningRoutes";
+import { landingRoutes } from "./landingRoutes";
 import { roomRoutes } from "./roomRoutes";
 
 export const routes = [
     { element: <AuthLayout />, children: authRoutes },
-    { element: <DefaultLayout />, children: [...landingRoutes, ...chatRoutes, ...roomRoutes] },
+    { element: <GeneralLayout />, children: [...landingRoutes, ...chatRoutes, ...roomRoutes] },
 ];

@@ -5,7 +5,7 @@ import { Outlet } from "react-router-dom";
 
 const NAVBAR_HEIGHT = 64;
 
-const DefaultLayout = () => {
+function GeneralLayout() {
     return (
         <Box sx={{ display: "flex", minHeight: "100vh", flexDirection: "column", bgcolor: "background.default" }}>
             <AppBar
@@ -47,6 +47,6 @@ const DefaultLayout = () => {
             </Box>
         </Box>
     );
-};
+}
 
-export default DefaultLayout;
+export default GeneralLayout;
