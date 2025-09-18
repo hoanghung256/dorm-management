@@ -1,0 +1,36 @@
+name: Deploy FE to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./src/FE
+
+      - name: Build project
+        run: npm run build
+        working-directory: ./
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy to Firebase Hosting
+        run: firebase deploy --only hosting
+        working-directory: ./
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
