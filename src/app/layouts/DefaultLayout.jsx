@@ -1,22 +1,51 @@
+import { AppBar, Toolbar, Box, Container, Typography, IconButton, Stack } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
 import { UserButton } from "@clerk/clerk-react";
-import { HiArrowNarrowUp } from "react-icons/hi";
 import { Outlet } from "react-router-dom";
+
+const NAVBAR_HEIGHT = 64;
 
 const DefaultLayout = () => {
     return (
-        <div className="">
-            <div className="d-flex justify-content-end align-items-center p-3 border-bottom">
-                <UserButton />
-            </div>
-            <div className="main-content w-100 bg-white" style={{ height: "100vh" }}>
-                {/* <NavbarLayout /> */}
-                <div className="d-inline position-relative w-100">
-                    <div className="">
-                        <Outlet />
-                    </div>
-                </div>
-            </div>
-        </div>
+        <Box sx={{ display: "flex", minHeight: "100vh", flexDirection: "column", bgcolor: "background.default" }}>
+            <AppBar
+                position="fixed"
+                elevation={1}
+                color="primary"
+                sx={{
+                    backgroundImage: (theme) =>
+                        `linear-gradient(200deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                }}
+            >
+                <Toolbar sx={{ minHeight: NAVBAR_HEIGHT, display: "flex", justifyContent: "space-between" }}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        <IconButton
+                            edge="start"
+                            color="inherit"
+                            size="large"
+                            aria-label="menu"
+                            sx={{ display: { md: "none" } }}
+                        >
+                            <MenuIcon />
+                        </IconButton>
+                        <Typography variant="h6" fontWeight={600} sx={{ letterSpacing: 0.5 }}>
+                            DormManagement
+                        </Typography>
+                    </Stack>
+
+                    <Stack direction="row" spacing={2} alignItems="center">
+                        {/* Placeholder for future nav items */}
+                        <UserButton afterSignOutUrl="/login" />
+                    </Stack>
+                </Toolbar>
+            </AppBar>
+            <Toolbar sx={{ minHeight: NAVBAR_HEIGHT }} /> {/* spacer below fixed AppBar */}
+            <Box component="main" sx={{ flexGrow: 1, py: 3 }}>
+                <Container maxWidth="lg">
+                    <Outlet />
+                </Container>
+            </Box>
+        </Box>
     );
 };
 
