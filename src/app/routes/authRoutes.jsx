@@ -1,7 +1,7 @@
 import ProtectedRoute from "../../components/ProtectedRoute";
-import LoginCallback from "../../features/auth/pages/Login/LoginCallback";
-import LoginPage from "../../features/auth/pages/Login/LoginPage";
+import LoginPage from "../../features/auth/pages/login/LoginPage";
 import SignUpPage from "../../features/auth/pages/SignUpPage";
+import LoginCallback from "../../features/auth/pages/login/LoginCallback";
 
 export const authRoutes = [
     { path: "/login", element: <LoginPage /> },
