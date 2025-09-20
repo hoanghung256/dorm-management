@@ -1,7 +1,7 @@
 // src/services/convexClient.js
 // Lightweight Convex client helpers for queries and mutations from the frontend
 import { ConvexHttpClient } from "convex/browser";
-import toast from "react-hot-toast";
+import { useQuery } from "convex/react";
 
 let client;
 
@@ -14,7 +14,7 @@ export function getConvexClient() {
     return client;
 }
 
-export async function convexQuery(func, args) {
+export async function convexQueryOneTime(func, args) {
     const c = getConvexClient();
     return await c.query(func, args);
 }
@@ -22,4 +22,8 @@ export async function convexQuery(func, args) {
 export async function convexMutation(func, args) {
     const c = getConvexClient();
     return await c.mutation(func, args);
+}
+
+export function convexQueryRealtime(func, args) {
+    return useQuery(func, args);
 }

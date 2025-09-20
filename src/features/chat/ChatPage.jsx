@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { convexQuery, convexMutation } from '../../services/convexClient'
+import { convexMutation, convexQueryOneTime } from '../../services/convexClient'
 
 export default function ChatPage({ landlordId = 1, roomId, senderType = 'landlord', senderRenterId }) {
   const [messages, setMessages] = useState([])
@@ -8,7 +8,7 @@ export default function ChatPage({ landlordId = 1, roomId, senderType = 'landlor
 
   async function load() {
     try {
-      const list = await convexQuery(import.meta.env.VITE_CONVEX_FUNC_CHAT_LIST || 'chat:listMessages', { landlordId, roomId })
+      const list = await convexQueryOneTime(import.meta.env.VITE_CONVEX_FUNC_CHAT_LIST || 'chat:listMessages', { landlordId, roomId })
       setMessages(list)
     } catch (e) {
       setError(e?.message || 'Failed to load messages')

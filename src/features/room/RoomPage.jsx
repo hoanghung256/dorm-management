@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { convexQuery } from "../../services/convexClient";
+import { convexQueryOneTime } from "../../services/convexClient";
 import { api } from "../../../convex/_generated/api";
 
 function RoomPage() {
@@ -11,7 +11,7 @@ function RoomPage() {
     }, []);
 
     const getRoom = async () => {
-        const room = await convexQuery(api.functions.rooms.listByLandlord, { landlordId: user.id });
+        const room = await convexQueryOneTime(api.functions.rooms.listByLandlord, { landlordId: user.id });
         setRoom(room);
     };
 

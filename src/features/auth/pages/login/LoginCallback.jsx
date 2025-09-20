@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useClerkUserData } from "../../../../hooks/useClerkUserData";
-import { convexMutation, convexQuery } from "../../../../services/convexClient";
+import { convexMutation, convexQueryOneTime } from "../../../../services/convexClient";
 import { api } from "../../../../../convex/_generated/api";
 import { Button, TextField, MenuItem, Stack, Typography, Paper, Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,7 @@ function LoginCallback() {
     const { user } = useClerkUserData();
     const [fetchedUser, setFetchedUser] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [isCheckingUserExist, setIsCheckingUserExist] = useState(true);
     const [form, setForm] = useState({
         clerkUserId: "",
         name: "",
@@ -38,20 +39,22 @@ function LoginCallback() {
     useEffect(() => {
         if (user && !fetchedUser) {
             (async () => {
+                setIsCheckingUserExist(true);
                 await checkIfUserExists(user.id);
+                setIsCheckingUserExist(false);
             })();
+        }
+        if (fetchedUser) {
+            if (fetchedUser.role === "landlord") navigate("/");
+            if (fetchedUser.role === "renter") navigate("/");
         }
     }, [user, fetchedUser]);
 
-    useEffect(() => {
-        if (form) {
-            console.log(form);
-        }
-    }, [form]);
-
     const checkIfUserExists = async (clerkId) => {
         try {
-            const existingUser = await convexQuery(api.functions.users.getUserByClerkId, { clerkUserId: clerkId });
+            const existingUser = await convexQueryOneTime(api.functions.users.getUserByClerkId, {
+                clerkUserId: clerkId,
+            });
             dispatch(setUserData(existingUser));
             setFetchedUser(existingUser);
         } catch (e) {
@@ -91,12 +94,11 @@ function LoginCallback() {
         }
     };
 
-    if (fetchedUser) {
-        if (fetchedUser.role === "landlord") return navigate("/");
-        if (fetchedUser.role === "renter") return navigate("/");
-    }
-
-    return (
+    return isCheckingUserExist ? (
+        <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+            <Typography variant="h6">Đang kiểm tra thông tin người dùng...</Typography>
+        </Box>
+    ) : !isCheckingUserExist && !fetchedUser ? (
         <Box display="flex" justifyContent="center" mt={4} px={2}>
             <Paper elevation={3} sx={{ p: 4, maxWidth: 520, width: "100%" }}>
                 <Typography variant="h5" mb={2} fontWeight={600}>
@@ -174,7 +176,7 @@ function LoginCallback() {
                 </form>
             </Paper>
         </Box>
-    );
+    ) : null;
 }
 
 export default LoginCallback;
