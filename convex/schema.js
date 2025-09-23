@@ -45,10 +45,12 @@ export default defineSchema({
     rooms: defineTable({
         code: v.string(),
         status: v.union(v.literal("vacant"), v.literal("occupied"), v.literal("maintenance")),
+        dormId: v.id("dorms"),
         landlordId: v.id("landlords"),
         currentRenterId: v.optional(v.id("renters")),
     })
         .index("by_landlord", ["landlordId"])
+        .index("by_dorm", ["dormId"])
         .index("by_code_landlord", ["landlordId", "code"]),
 
     roomAmenities: defineTable({

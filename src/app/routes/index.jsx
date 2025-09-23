@@ -12,7 +12,7 @@ export const routes = [
     { element: <AuthLayout />, children: authRoutes },
     {
         element: <GeneralLayout />,
-        children: landingRoutes,
+        children: [...landlordRoutes, ...landingRoutes],
     },
     {
         element: (
