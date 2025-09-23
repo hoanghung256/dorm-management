@@ -45,7 +45,7 @@ function LoginCallback() {
             })();
         }
         if (fetchedUser) {
-            if (fetchedUser.role === "landlord") navigate("/");
+            if (fetchedUser.role === "landlord") navigate("/landlord/dorms");
             if (fetchedUser.role === "renter") navigate("/");
         }
     }, [user, fetchedUser]);

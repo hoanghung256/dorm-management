@@ -11,6 +11,11 @@ const authSlice = createSlice({
     reducers: {
         setUserData(state, value) {
             state.userData = value.payload;
+            if (value.payload === null) {
+                localStorage.removeItem("token");
+            } else {
+                localStorage.setItem("user", JSON.stringify(value.payload));
+            }
         },
         setToken(state, value) {
             state.token = value.payload;

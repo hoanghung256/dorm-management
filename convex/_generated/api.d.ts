@@ -15,6 +15,7 @@ import type {
 } from "convex/server";
 import type * as functions_admin from "../functions/admin.js";
 import type * as functions_chat from "../functions/chat.js";
+import type * as functions_dorms from "../functions/dorms.js";
 import type * as functions_email from "../functions/email.js";
 import type * as functions_expenses from "../functions/expenses.js";
 import type * as functions_invoices from "../functions/invoices.js";
@@ -36,6 +37,7 @@ import type * as functions_users from "../functions/users.js";
 declare const fullApi: ApiFromModules<{
   "functions/admin": typeof functions_admin;
   "functions/chat": typeof functions_chat;
+  "functions/dorms": typeof functions_dorms;
   "functions/email": typeof functions_email;
   "functions/expenses": typeof functions_expenses;
   "functions/invoices": typeof functions_invoices;
