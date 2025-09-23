@@ -1,7 +1,7 @@
-import AboutUs from "../../features/landing/AboutUs";
-import Home from "../../features/landing/Home";
+
+
+import LandingPage from "../../features/landing/landingPage";
 
 export const landingRoutes = [
-    { path: "/", element: <Home /> },
-    { path: "/about", element: <AboutUs /> },
+    { path: "/", element: <LandingPage /> },
 ];
