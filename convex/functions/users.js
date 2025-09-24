@@ -82,3 +82,11 @@ export const createUser = mutation({
         return user;
     },
 });
+
+export const getById = query({
+    args: { landlordId: v.id("landlords") },
+    handler: async (ctx, { landlordId }) => {
+        const doc = await ctx.db.get(landlordId);
+        return doc ? { _id: doc._id, name: doc.name ?? null } : null;
+    },
+});

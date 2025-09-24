@@ -1,210 +1,80 @@
-import { AppBar, Toolbar, Box, Container, Typography, IconButton, Stack, Button } from "@mui/material";
-import MenuIcon from "@mui/icons-material/Menu";
-import { UserButton } from "@clerk/clerk-react";
+import { Toolbar, Box, Container } from "@mui/material";
 import { Outlet } from "react-router-dom";
-import { useState } from "react";
-import useClerkUserData from "../../hooks/useClerkUserData";
-import webIcon from "../../assets/icons/tubbies-icon.png";
-
-const NAVBAR_HEIGHT = 75; // Updated to match design height
+import GeneralHeader, { NAVBAR_HEIGHT } from "./GeneralHeader";
+import GeneralFooter from "./GeneralFooter";
+import { useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Stack, List, ListItemButton, ListItemIcon, ListItemText } from "@mui/material";
+import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
+import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
+import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 
 function GeneralLayout() {
-    const { user } = useClerkUserData();
-    const [activeButton, setActiveButton] = useState("home");
-    const [defaultActive, setDefaultActive] = useState("home");
-
     return (
-        <Box sx={{ display: "flex", minHeight: "100vh", flexDirection: "column", bgcolor: "background.default" }}>
-            <AppBar
-                position="fixed"
-                elevation={0}
-                sx={{
-                    backgroundColor: "rgba(0, 0, 0, 0.03)",
-                    height: `${NAVBAR_HEIGHT}px`,
-                }}
-            >
-                <Toolbar
-                    sx={{
-                        backgroundColor: "rgba(255, 255, 255, 0.9)",
-                        backdropFilter: "blur(10px)",
-                        WebkitBackdropFilter: "blur(10px)",
-                        boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
-                        borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
-                        minHeight: NAVBAR_HEIGHT,
-                        height: `${NAVBAR_HEIGHT}px`,
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        px: { xs: 3, md: 12.5 },
-                    }}
-                >
-                    {/* Logo Section */}
-                    <Stack
-                        direction="row"
-                        spacing={1}
-                        alignItems="center"
-                        sx={{
-                            fontSize: "17px",
-                            fontWeight: 700,
-                            letterSpacing: "0.1px",
-                            justifyContent: "flex-start",
-                        }}
-                    >
-                        <Box
-                            component="img"
-                            src={webIcon}
-                            alt="Logo"
-                            sx={{
-                                width: "60px",
-                                height: "60px",
-                            }}
-                        />
-                        <Box
-                            sx={{
-                                display: "flex",
-                                minWidth: "240px",
-                                margin: "auto 0",
-                                alignItems: "flex-start",
-                                justifyContent: "flex-start",
-                            }}
-                        >
-                            <Typography
-                                sx={{
-                                    fontFamily: "'Poppins', Helvetica",
-                                    fontWeight: 700,
-                                    color: "black",
-                                    fontSize: "17px",
-                                    letterSpacing: "0.10px",
-                                    lineHeight: "normal",
-                                }}
-                            >
-                                Dorm Management Solution
-                            </Typography>
-                        </Box>
-                    </Stack>
+        <>
+            <GeneralHeader />
 
-                    {/* Navigation Section */}
-                    <Stack
-                        direction="row"
-                        spacing={4}
-                        alignItems="center"
-                        onMouseLeave={() => setActiveButton(defaultActive)}
-                        sx={{
-                            fontSize: "16px",
-                            fontWeight: 500,
-                        }}
-                    >
-                        <Button
-                            href="/"
-                            className={activeButton === "home" ? "nav-button-active" : "nav-button-inactive"}
-                            onMouseEnter={() => setActiveButton("home")}
-                            onFocus={() => setActiveButton("home")}
-                            onClick={() => setDefaultActive("home")}
-                            sx={{
-                                minWidth: "98px",
-                                height: "40px",
-                                px: 2,
-                                borderRadius: "8px",
-                                fontFamily: "'Poppins', Helvetica",
-                                fontWeight: 700,
-                                fontSize: "16px",
-                                textTransform: "none",
-                                transition: "all 0.2s",
-                            }}
-                        >
-                            Trang chủ
-                        </Button>
-                        <Button
-                            href="#contact"
-                            className={activeButton === "contact" ? "nav-button-active" : "nav-button-inactive"}
-                            onMouseEnter={() => setActiveButton("contact")}
-                            onFocus={() => setActiveButton("contact")}
-                            onClick={() => setDefaultActive("contact")}
-                            sx={{
-                                minWidth: "98px",
-                                height: "40px",
-                                px: 2,
-                                borderRadius: "8px",
-                                fontFamily: "'Poppins', Helvetica",
-                                fontWeight: 700,
-                                fontSize: "16px",
-                                textTransform: "none",
-                                transition: "all 0.2s",
-                            }}
-                        >
-                            Liên hệ
-                        </Button>
-                        <Button
-                            href="#about"
-                            className={activeButton === "about" ? "nav-button-active" : "nav-button-inactive"}
-                            onMouseEnter={() => setActiveButton("about")}
-                            onFocus={() => setActiveButton("about")}
-                            onClick={() => setDefaultActive("about")}
-                            sx={{
-                                minWidth: "98px",
-                                height: "40px",
-                                px: 2,
-                                borderRadius: "8px",
-                                fontFamily: "'Poppins', Helvetica",
-                                fontWeight: 700,
-                                fontSize: "16px",
-                                textTransform: "none",
-                                transition: "all 0.2s",
-                            }}
-                        >
-                            Về chúng tôi
-                        </Button>
-                        {user ? (
-                            <UserButton afterSignOutUrl="/" />
-                        ) : (
-                            <Button
-                                href="/login"
-                                className={activeButton === "login" ? "nav-button-active" : "nav-button-inactive"}
-                                onMouseEnter={() => setActiveButton("login")}
-                                onFocus={() => setActiveButton("login")}
-                                onClick={() => setDefaultActive("login")}
-                                sx={{
-                                    minWidth: "98px",
-                                    height: "40px",
-                                    px: 2,
-                                    borderRadius: "8px",
-                                    fontFamily: "'Poppins', Helvetica",
-                                    fontWeight: 700,
-                                    fontSize: "16px",
-                                    textTransform: "none",
-                                    transition: "all 0.2s",
-                                }}
-                            >
-                                Đăng nhập
-                            </Button>
-                        )}
-                    </Stack>
-                </Toolbar>
-            </AppBar>
-            <Toolbar sx={{ minHeight: NAVBAR_HEIGHT }} /> {/* spacer below fixed AppBar */}
-            <Box component="main" sx={{ flexGrow: 1, py: 3 }}>
-                <Container maxWidth="lg">
-                    <Outlet />
-                </Container>
+            <Toolbar sx={{ minHeight: NAVBAR_HEIGHT }} />
+
+            <Box sx={{ display: "flex", minHeight: "100vh", flexDirection: "column", bgcolor: "background.default" }}>
+                <Box component="main" sx={{ flexGrow: 1, py: 3 }}>
+                    <Container maxWidth="lg">
+                        <Outlet />
+                    </Container>
+                </Box>
             </Box>
-            <Box
-                component="footer"
-                sx={{
-                    backgroundColor: "rgba(255, 255, 255, 0.9)",
-                    backdropFilter: "blur(10px)",
-                    WebkitBackdropFilter: "blur(10px)",
-                    boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
-                    borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
-                    py: 3,
-                    textAlign: "center",
-                }}
-            >
-                <Typography variant="body2" color="text.secondary">
-                    © 2025 DormManagement. All rights reserved.
-                </Typography>
-            </Box>
-        </Box>
+
+            <GeneralFooter />
+        </>
     );
 }
 
 export default GeneralLayout;
+
+function Sidebar() {
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    const items = useMemo(
+        () => [
+            { key: "rooms", label: "Quản lí phòng trọ", to: "/landlord/dorms", icon: <HomeRoundedIcon /> },
+            { key: "reports", label: "Báo cáo hóa đơn", to: null, icon: <ReceiptLongRoundedIcon /> },
+            { key: "info", label: "Thông tin phòng trọ", to: null, icon: <SettingsRoundedIcon /> },
+        ],
+        [],
+    );
+
+    const isActive = (to) => (to ? location.pathname.startsWith(to) : false);
+
+    return (
+        <Box component="aside" sx={{ width: 260, flexShrink: 0 }}>
+            <List sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {items.map(({ key, label, to, icon }) => {
+                    const active = isActive(to);
+                    return (
+                        <ListItemButton
+                            key={key}
+                            onClick={() => to && navigate(to)}
+                            disabled={!to}
+                            sx={{
+                                borderRadius: 2,
+                                py: 1.5,
+                                boxShadow: active ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
+                                bgcolor: active ? "#f1e4ff" : "transparent",
+                                color: active ? "#5e35b1" : "inherit",
+                                "&:hover": { bgcolor: active ? "#e9d6ff" : "rgba(0,0,0,0.04)" },
+                            }}
+                        >
+                            <ListItemIcon sx={{ minWidth: 36, color: active ? "#6a1b9a" : "rgba(0,0,0,0.54)" }}>
+                                {icon}
+                            </ListItemIcon>
+                            <ListItemText primary={label} primaryTypographyProps={{ fontWeight: 600 }} />
+                        </ListItemButton>
+                    );
+                })}
+            </List>
+        </Box>
+    );
+}
+
+export { Sidebar };

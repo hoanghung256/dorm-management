@@ -5,5 +5,5 @@ import RoomPage from "../../features/room/RoomPage";
 export const landlordRoutes = [
     { path: "/landlord/dorms", element: <ManageDormPage /> },
     { path: "/landlord/chat", element: <ChatPage /> },
-    { path: "/landlord/rooms", element: <RoomPage /> },
+    { path: "/landlord/dorms/:dormId", element: <RoomPage /> },
 ];

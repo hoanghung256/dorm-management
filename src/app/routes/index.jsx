@@ -12,21 +12,21 @@ export const routes = [
     { element: <AuthLayout />, children: authRoutes },
     {
         element: <GeneralLayout />,
-        children: [...landlordRoutes, ...landingRoutes],
+        children: landingRoutes,
     },
     {
         element: (
-            <ProtectedRoute>
-                <LandlordLayout />
-            </ProtectedRoute>
+            // <ProtectedRoute>
+            <LandlordLayout />
+            // </ProtectedRoute>
         ),
         children: landlordRoutes,
     },
     {
         element: (
-            <ProtectedRoute>
-                <RenterLayout />
-            </ProtectedRoute>
+            // <ProtectedRoute>
+            <RenterLayout />
+            // </ProtectedRoute>
         ),
         children: renterRoutes,
     },

@@ -19,6 +19,8 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import MeetingRoomIcon from "@mui/icons-material/MeetingRoom"; // Add Button
+import { useNavigate } from "react-router-dom"; // Add Button
 import { api } from "../../../convex/_generated/api";
 import useConvexUserData from "../../hooks/useConvexUserData";
 import { convexQueryOneTime } from "../../services/convexClient";
@@ -26,6 +28,7 @@ import CreateDormModal from "./CreateDormModal";
 
 function ManageDormPage() {
     const user = useConvexUserData();
+    const navigate = useNavigate(); // Add Button
 
     const [pageData, setPageData] = useState({ items: [], page: 1, pageSize: 5, total: 0, totalPages: 0 });
     const [openDialog, setOpenDialog] = useState(false);
@@ -98,7 +101,16 @@ function ManageDormPage() {
                                 <Typography variant="h6" fontSize={18}>
                                     {d.name}
                                 </Typography>
-                                <Stack direction="row" spacing={1}>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    {/* NEW: Navigate to rooms of this dorm */}
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        startIcon={<MeetingRoomIcon fontSize="small" />}
+                                        onClick={() => navigate(`/landlord/dorms/${d._id}`)}
+                                    >
+                                        Quản lý phòng
+                                    </Button>
                                     <Tooltip title="Sửa">
                                         <IconButton size="small" onClick={() => openEdit(d)}>
                                             <EditIcon fontSize="small" />

@@ -44,6 +44,8 @@ export default defineSchema({
 
     rooms: defineTable({
         code: v.string(),
+        price: v.number(),
+        currency: v.literal("VND"),
         status: v.union(v.literal("vacant"), v.literal("occupied"), v.literal("maintenance")),
         dormId: v.id("dorms"),
         landlordId: v.id("landlords"),

@@ -1,86 +1,120 @@
-import { useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Box } from "@mui/material";
-import { convexMutation } from "../../services/convexClient";
+import { useEffect, useState } from "react";
 import { api } from "../../../convex/_generated/api";
+import { convexMutation, convexQueryOneTime } from "../../services/convexClient";
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from "@mui/material";
 
-export default function CreateRoomForm({ open, onClose, landlordId, onCreated }) {
+export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCreated }) {
     const [code, setCode] = useState("");
+    const [price, setPrice] = useState("");
+    const [dormName, setDormName] = useState("");
+    const [dormLoading, setDormLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
 
+    useEffect(() => {
+        if (!open) return;
+        let cancelled = false;
+        (async () => {
+            if (!dormId) {
+                setDormName("Tự động chọn khu trọ đầu tiên");
+                return;
+            }
+            try {
+                const d = await convexQueryOneTime(api.functions.dorms.getById, { dormId });
+                if (!cancelled) setDormName(d?.name || dormId);
+            } catch {
+                if (!cancelled) setDormName(dormId);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [open, dormId]);
+
     const handleSubmit = async (e) => {
-        e?.preventDefault?.();
+        e.preventDefault();
+        if (submitting) return;
         setError("");
 
-        console.log("landlordId in CreateRoomForm:", landlordId);
-        if (!landlordId) {
-            setError("Không thể tạo phòng: thiếu thông tin chủ trọ");
-            return;
-        }
-
-        const trimmed = code.trim();
-        if (!trimmed) {
-            setError("Vui lòng nhập mã phòng");
-            return;
-        }
-
         try {
+            if (!landlordId) throw new Error("Thiếu landlordId.");
+            const trimmed = code.trim();
+            if (!trimmed) throw new Error("Mã phòng không được để trống.");
+
+            const p = price === "" ? 0 : Number(price);
+            if (Number.isNaN(p) || p < 0) throw new Error("Giá phòng không hợp lệ.");
+
             setSubmitting(true);
-            const newId = await convexMutation(api.functions.rooms.create, { landlordId, code: trimmed });
-            setSubmitting(false);
+            await convexMutation(api.functions.rooms.create, {
+                landlordId,
+                code: trimmed,
+                dormId: dormId || undefined,
+                price: p,
+            });
+
             setCode("");
-            onCreated?.(newId);
-            onClose?.();
+            setPrice("");
+            onCreated?.();
         } catch (err) {
+            setError(err?.message || "Tạo phòng thất bại.");
+        } finally {
             setSubmitting(false);
-            setError(err?.message || "Tạo phòng thất bại");
         }
     };
 
     const handleClose = () => {
-        if (!submitting) {
-            setCode("");
-            setError("");
-            onClose?.();
-        }
+        if (submitting) return;
+        setError("");
+        setCode("");
+        setPrice("");
+        onClose?.();
     };
 
     return (
-        <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-            <form onSubmit={handleSubmit}>
-                <DialogTitle>Tạo phòng mới</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ mt: 1 }}>
-                        <TextField
-                            label="Mã phòng"
-                            value={code}
-                            onChange={(e) => setCode(e.target.value)}
-                            fullWidth
-                            autoFocus
-                            disabled={submitting}
-                            helperText={error || "Ví dụ: A101"}
-                            error={!!error}
-                        />
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleClose} disabled={submitting} color="inherit">
-                        Hủy
-                    </Button>
-                    <Button
-                        type="submit"
-                        variant="contained"
-                        // disabled={submitting || !landlordId}
-                        sx={{
-                            backgroundColor: "#7b1fa2",
-                            "&:hover": { backgroundColor: "#6a1b9a" },
-                            textTransform: "none",
-                        }}
-                    >
-                        {submitting ? "Đang tạo..." : "Tạo phòng"}
-                    </Button>
-                </DialogActions>
-            </form>
+        <Dialog open={open} onClose={handleClose} fullWidth maxWidth="xs" component="form" onSubmit={handleSubmit}>
+            <DialogTitle>Tạo phòng</DialogTitle>
+            <DialogContent dividers>
+                <Stack spacing={2} sx={{ pt: 1 }}>
+                    <TextField
+                        label="Khu trọ"
+                        value={dormLoading ? "Đang tải tên khu trọ..." : dormName || dormId || "Chưa chọn"}
+                        InputProps={{ readOnly: true }}
+                        fullWidth
+                    />
+                    <TextField
+                        label="Mã phòng"
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
+                        autoFocus
+                        required
+                        fullWidth
+                        disabled={submitting}
+                    />
+                    <TextField
+                        label="Giá (VND)"
+                        type="number"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        inputProps={{ min: 0, step: 1000 }}
+                        helperText="Để trống = 0 VND"
+                        fullWidth
+                        disabled={submitting}
+                    />
+                    {error && (
+                        <Typography color="error" variant="body2">
+                            {error}
+                        </Typography>
+                    )}
+                </Stack>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={handleClose} disabled={submitting}>
+                    Hủy
+                </Button>
+                <Button type="submit" variant="contained" disabled={submitting || !landlordId}>
+                    {submitting ? "Đang tạo..." : "Tạo phòng"}
+                </Button>
+            </DialogActions>
         </Dialog>
     );
 }
