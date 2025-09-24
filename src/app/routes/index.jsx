@@ -16,17 +16,17 @@ export const routes = [
     },
     {
         element: (
-            <ProtectedRoute>
-                <LandlordLayout />
-            </ProtectedRoute>
+            // <ProtectedRoute>
+            <LandlordLayout />
+            // </ProtectedRoute>
         ),
         children: landlordRoutes,
     },
     {
         element: (
-            <ProtectedRoute>
-                <RenterLayout />
-            </ProtectedRoute>
+            // <ProtectedRoute>
+            <RenterLayout />
+            // </ProtectedRoute>
         ),
         children: renterRoutes,
     },

@@ -187,3 +187,11 @@ export const deleteDorm = mutation({
         return { deleted: true };
     },
 });
+
+export const getById = query({
+    args: { dormId: v.id("dorms") },
+    handler: async (ctx, { dormId }) => {
+        const d = await ctx.db.get(dormId);
+        return d ? { _id: d._id, name: d.name ?? null } : null;
+    },
+});
