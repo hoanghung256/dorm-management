@@ -1,8 +1,6 @@
 import { SignUp } from "@clerk/clerk-react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import logo from "../../../../assets/logo.png";
 import background from "../../../../assets/background.png";
-import { Link } from "react-router-dom";
 
 function SignUpPage() {
   return (
