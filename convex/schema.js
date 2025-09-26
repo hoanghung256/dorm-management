@@ -38,8 +38,20 @@ export default defineSchema({
     amenities: defineTable({
         dormId: v.id("dorms"),
         name: v.string(),
-        price: v.number(),
-        unitFeeType: v.union(v.literal("metered"), v.literal("person")),
+        type: v.optional(
+            v.union(
+                v.literal("electricity"),
+                v.literal("water"),
+                v.literal("internet"),
+                v.literal("garbage"),
+                v.literal("elevator"),
+                v.literal("management"),
+                v.literal("other"),
+            ),
+        ),
+        unitPrice: v.number(), // Changed from 'price' to match UI expectations
+        unit: v.optional(v.string()), // For metered amenities (kWh, m³, etc.)
+        unitFeeType: v.union(v.literal("metered"), v.literal("per_person"), v.literal("fixed")),
     }).index("by_dorm", ["dormId"]),
 
     rooms: defineTable({

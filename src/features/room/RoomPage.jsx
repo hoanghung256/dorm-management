@@ -4,6 +4,7 @@ import { convexQueryOneTime, convexMutation } from "../../services/convexClient"
 import useClerkUserData from "../../hooks/useClerkUserData";
 import { api } from "../../../convex/_generated/api";
 import CreateRoomForm from "../../features/room/CreateRoomForm";
+import CreateInvoiceDialog from "../../features/room/CreateInvoiceDialog";
 import { Container, Box, Button, Grid, CircularProgress, Typography, Chip, Stack, Avatar } from "@mui/material";
 import { Add } from "@mui/icons-material";
 
@@ -37,6 +38,10 @@ export default function RoomPage() {
     const [openCreate, setOpenCreate] = useState(false);
     const [landlordId, setLandlordId] = useState(null);
     const [createDormId, setCreateDormId] = useState(null);
+
+    // Invoice Dialog states
+    const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+    const [selectedRoomId, setSelectedRoomId] = useState(null);
 
     // Cache dorm names: { [dormId]: name }
     const [dormNames, setDormNames] = useState({});
@@ -120,6 +125,17 @@ export default function RoomPage() {
     };
     const handleCloseCreate = () => setOpenCreate(false);
 
+    // Invoice Dialog handlers
+    const handleOpenInvoiceDialog = (roomId) => {
+        setSelectedRoomId(roomId);
+        setInvoiceDialogOpen(true);
+    };
+
+    const handleCloseInvoiceDialog = () => {
+        setInvoiceDialogOpen(false);
+        setSelectedRoomId(null);
+    };
+
     const reloadRooms = async () => {
         if (!landlordId) return;
         setLoading(true);
@@ -194,7 +210,7 @@ export default function RoomPage() {
             </Box>
 
             {/* Room Cards */}
-            <Grid style={{ cursor: "pointer" }} container spacing={2} sx={{ mb: 3 }} alignItems="stretch">
+            <Grid container spacing={2} sx={{ mb: 3 }} alignItems="stretch">
                 {rooms.map((roomItem) => {
                     const chip = statusChip(roomItem.status);
                     const dormName = dormNames[roomItem.dormId] || roomItem.dormId;
@@ -216,14 +232,24 @@ export default function RoomPage() {
                                     flexDirection: "column",
                                     gap: 1.25,
                                     height: "100%",
-                                    minHeight: 240, // make the card longer
+                                    minHeight: 240,
+                                    cursor: "pointer",
+                                    transition: "all 0.3s ease-in-out",
+                                    '&:hover': {
+                                        boxShadow: "0 8px 24px rgba(123,31,162,0.15)",
+                                        transform: "translateY(-2px)",
+                                        borderColor: "#7b1fa2",
+                                    }
                                 }}
+                                onClick={() => handleOpenInvoiceDialog(roomItem._id)}
                             >
                                 <Stack direction="row" alignItems="center" justifyContent="space-between">
                                     <Typography variant="h6" sx={{ fontWeight: "bold" }}>
                                         Phòng {roomItem.code}
                                     </Typography>
-                                    <Chip size="small" label={chip.label} color={chip.color} sx={{ fontWeight: 500 }} />
+                                    <Stack direction="row" alignItems="center" spacing={1}>
+                                        <Chip size="small" label={chip.label} color={chip.color} sx={{ fontWeight: 500 }} />
+                                    </Stack>
                                 </Stack>
 
                                 {/* Optional renter row */}
@@ -257,14 +283,22 @@ export default function RoomPage() {
                                 </Typography>
 
                                 <Stack direction="row" spacing={1} sx={{ pt: 0.5 }}>
-                                    <Button size="small" variant="outlined" disabled>
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        disabled
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
                                         Sửa
                                     </Button>
                                     <Button
                                         size="small"
                                         color="error"
                                         variant="outlined"
-                                        onClick={() => handleDelete(roomItem._id)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDelete(roomItem._id);
+                                        }}
                                     >
                                         Xóa
                                     </Button>
@@ -326,6 +360,15 @@ export default function RoomPage() {
                 dormId={createDormId}
                 onCreated={handleRoomCreated}
             />
+
+            {invoiceDialogOpen && (
+                <CreateInvoiceDialog
+                    open={invoiceDialogOpen}
+                    onClose={handleCloseInvoiceDialog}
+                    roomId={selectedRoomId}
+                />
+            )}
         </Container>
     );
 }
+
