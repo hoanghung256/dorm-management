@@ -33,7 +33,26 @@ export const listByDorm = query({
 export const getById = query({
     args: { roomId: v.id("rooms") },
     handler: async (ctx, { roomId }) => {
-        return await ctx.db.get(roomId);
+        const room = await ctx.db.get(roomId);
+        if (!room) return null;
+
+        // If room has a renter, fetch renter details with user info
+        let renterInfo = null;
+        if (room.currentRenterId) {
+            const renter = await ctx.db.get(room.currentRenterId);
+            if (renter) {
+                const user = await ctx.db.get(renter.userId);
+                renterInfo = {
+                    ...renter,
+                    user: user,
+                };
+            }
+        }
+
+        return {
+            ...room,
+            renter: renterInfo,
+        };
     },
 });
 
@@ -189,8 +208,6 @@ export const remove = mutation({
     },
 });
 
-// ---- Sorting helpers ----
-// Natural sort: splits alphanumeric code into text + numeric tokens for intuitive ordering
 function roomCodeComparator(a, b) {
     const ta = tokenizeCode(a.code);
     const tb = tokenizeCode(b.code);
@@ -240,3 +257,69 @@ function tokenizeCode(code) {
     }
     return tokens;
 }
+
+export const getRoomDetails = query({
+    args: { roomId: v.id("rooms") },
+    handler: async (ctx, { roomId }) => {
+        try {
+            const room = await ctx.db.get(roomId);
+            if (!room) return null;
+
+            let renterInfo = null;
+            if (room.currentRenterId) {
+                const renter = await ctx.db.get(room.currentRenterId);
+                if (renter) {
+                    const user = await ctx.db.get(renter.userId);
+                    renterInfo = {
+                        ...renter,
+                        user: user,
+                    };
+                }
+            }
+
+            return {
+                ...room,
+                roomCode: room.code,
+                renter: renterInfo,
+            };
+        } catch (error) {
+            throw error;
+        }
+    },
+});
+
+export const getRoomAmenities = query({
+    args: { roomId: v.id("rooms") },
+    handler: async (ctx, { roomId }) => {
+        try {
+            const room = await ctx.db.get(roomId);
+            if (!room) throw new Error("Room not found");
+
+            const roomAmenities = await ctx.db
+                .query("roomAmenities")
+                .withIndex("by_room", (q) => q.eq("roomId", roomId))
+                .collect();
+
+            const amenitiesWithDetails = await Promise.all(
+                roomAmenities.map(async (ra) => {
+                    try {
+                        const amenityDetail = await ctx.db.get(ra.amenityId);
+                        return {
+                            ...ra,
+                            details: amenityDetail,
+                        };
+                    } catch (error) {
+                        return {
+                            ...ra,
+                            details: null,
+                        };
+                    }
+                }),
+            );
+
+            return amenitiesWithDetails;
+        } catch (error) {
+            throw error;
+        }
+    },
+});
