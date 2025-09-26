@@ -108,6 +108,13 @@ export const listDormsByLandlord = query({
         const end = start + pageSize;
         const slice = all.slice(start, end);
 
+        for (const d of slice) {
+            d.amenities = await ctx.db
+                .query("amenities")
+                .withIndex("by_dorm", (q) => q.eq("dormId", d._id))
+                .collect();
+        }
+
         return {
             items: slice,
             page,

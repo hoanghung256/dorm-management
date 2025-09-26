@@ -25,6 +25,7 @@ import { api } from "../../../convex/_generated/api";
 import useConvexUserData from "../../hooks/useConvexUserData";
 import { convexQueryOneTime } from "../../services/convexClient";
 import CreateDormModal from "./CreateDormModal";
+import AddAmenitiesModal from "./AddAmenitiesModal";
 
 function ManageDormPage() {
     const user = useConvexUserData();
@@ -33,6 +34,9 @@ function ManageDormPage() {
     const [pageData, setPageData] = useState({ items: [], page: 1, pageSize: 5, total: 0, totalPages: 0 });
     const [openDialog, setOpenDialog] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+    const [editDormId, setEditDormId] = useState(null);
+    const [showAddAmenities, setShowAddAmenities] = useState(false);
+    const [editAmenities, setEditAmenities] = useState([]);
 
     useEffect(() => {
         if (user?.detail?._id) {
@@ -54,6 +58,12 @@ function ManageDormPage() {
         setOpenDialog(true);
     };
 
+    const openEdit = (dormId, dormAmenities) => {
+        setShowAddAmenities(true);
+        setEditAmenities(dormAmenities || []);
+        setEditDormId(dormId);
+    };
+
     return (
         <>
             <CreateDormModal
@@ -61,6 +71,13 @@ function ManageDormPage() {
                 open={openDialog}
                 onClose={() => setOpenDialog(false)}
                 refresh={getDorms}
+            />
+            <AddAmenitiesModal
+                dormId={editDormId}
+                open={showAddAmenities}
+                existingAmenities={editAmenities}
+                refresh={getDorms}
+                onClose={() => setShowAddAmenities(false)}
             />
             <Box>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
@@ -112,7 +129,7 @@ function ManageDormPage() {
                                         Quản lý phòng
                                     </Button>
                                     <Tooltip title="Sửa">
-                                        <IconButton size="small" onClick={() => openEdit(d)}>
+                                        <IconButton size="small" onClick={() => openEdit(d._id, d.amenities)}>
                                             <EditIcon fontSize="small" />
                                         </IconButton>
                                     </Tooltip>
