@@ -4,7 +4,6 @@ import { convexQueryOneTime, convexMutation } from "../../services/convexClient"
 import useClerkUserData from "../../hooks/useClerkUserData";
 import { api } from "../../../convex/_generated/api";
 import CreateRoomForm from "../../features/room/CreateRoomForm";
-
 import {
     Container,
     Box,
@@ -19,13 +18,12 @@ import {
     MenuItem,
     ListItemIcon,
     ListItemText,
-    Avatar
+    Avatar,
 } from "@mui/material";
 import { Add, MoreVert, EditOutlined, DeleteOutline } from "@mui/icons-material";
 import ConfirmModal from "../../components/ConfirmModal";
 import UpdateRoomForm from "../../features/room/UpdateRoomForm";
 import SearchRoomForm from "./SearchRoomForm";
-import { set } from "react-hook-form";
 import CreateInvoiceDialog from "../../features/room/CreateInvoiceDialog";
 
 function formatVND(n) {
@@ -60,18 +58,19 @@ export default function RoomPage() {
     const [openConfirm, setOpenConfirm] = useState(false);
 
     const [landlordId, setLandlordId] = useState(null);
-    const [createDormId, setCreateDormId] = useState(null); // ID of the room to be created
-    const [updateRoomId, setUpdateRoomId] = useState(null); // ID of the room to be updated
-    const [deleteId, setDeleteId] = useState(null); // ID of the room to be deleted
+    const [createDormId, setCreateDormId] = useState(null);
+    const [updateRoomId, setUpdateRoomId] = useState(null);
+    const [deleteId, setDeleteId] = useState(null);
 
-    const [renterNames, setRenterNames] = useState({}); // Store renter names by ID
     const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all"); // all | vacant | occupied | maintenance
-    // Menu state for per-card actions
+    const [statusFilter, setStatusFilter] = useState("all");
+
+    // Menu state
     const [menuAnchor, setMenuAnchor] = useState(null);
     const [menuRoomId, setMenuRoomId] = useState(null);
     const openMenu = Boolean(menuAnchor);
     const handleOpenMenu = (event, roomId) => {
+        event.stopPropagation();
         setMenuAnchor(event.currentTarget);
         setMenuRoomId(roomId);
     };
@@ -90,13 +89,13 @@ export default function RoomPage() {
         }
         handleCloseMenu();
     };
-    // Invoice Dialog states
+
+    // Invoice dialog
     const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
     const [selectedRoomId, setSelectedRoomId] = useState(null);
 
-    // Cache dorm names: { [dormId]: name }
+    // caches
     const [dormNames, setDormNames] = useState({});
-    // Optional: renter names if currentRenterId exists
     const [renterNames, setRenterNames] = useState({});
 
     useEffect(() => {
@@ -127,10 +126,10 @@ export default function RoomPage() {
                 } else {
                     data = await convexQueryOneTime(api.functions.rooms.listByLandlord, { landlordId });
                 }
-                setRooms(data);
+                setRooms(data || []);
 
-                // Load renter names for rooms that have currentRenterId using enriched renters.getById
-                const renterIds = data.filter((room) => room.currentRenterId).map((room) => room.currentRenterId);
+                // load renter names
+                const renterIds = data.filter((room) => room.currentRenterId).map((r) => r.currentRenterId);
                 if (renterIds.length > 0 && api.functions?.renters?.getById) {
                     const uniqueRenterIds = [...new Set(renterIds)];
                     const results = await Promise.allSettled(
@@ -149,7 +148,11 @@ export default function RoomPage() {
                         }
                     });
                     setRenterNames(map);
+                } else {
+                    setRenterNames({});
                 }
+
+                // Optional: you can load dorm names similarly if you have an API
             } finally {
                 setLoading(false);
             }
@@ -170,12 +173,10 @@ export default function RoomPage() {
     const handleCloseCreate = () => setOpenCreate(false);
     const handleCloseUpdate = () => setOpenUpdate(false);
 
-    // Invoice Dialog handlers
     const handleOpenInvoiceDialog = (roomId) => {
         setSelectedRoomId(roomId);
         setInvoiceDialogOpen(true);
     };
-
     const handleCloseInvoiceDialog = () => {
         setInvoiceDialogOpen(false);
         setSelectedRoomId(null);
@@ -191,10 +192,9 @@ export default function RoomPage() {
             } else {
                 data = await convexQueryOneTime(api.functions.rooms.listByLandlord, { landlordId });
             }
-            setRooms(data);
+            setRooms(data || []);
 
-            // Load renter names for rooms that have currentRenterId using enriched renters.getById
-            const renterIds = data.filter((room) => room.currentRenterId).map((room) => room.currentRenterId);
+            const renterIds = data.filter((room) => room.currentRenterId).map((r) => r.currentRenterId);
             if (renterIds.length > 0 && api.functions?.renters?.getById) {
                 const uniqueRenterIds = [...new Set(renterIds)];
                 const results = await Promise.allSettled(
@@ -229,12 +229,15 @@ export default function RoomPage() {
         setOpenUpdate(false);
     };
 
-    const handleDelete = async () => {
+    // When user confirms deletion
+    const handleDeleteConfirmed = async () => {
         if (!deleteId) return;
+        setLoading(true);
         try {
             await convexMutation(api.functions.rooms.remove, { roomId: deleteId });
             await reloadRooms();
             setOpenConfirm(false);
+            setDeleteId(null);
         } catch (e) {
             alert(e?.message || "Xóa phòng thất bại");
         } finally {
@@ -242,16 +245,14 @@ export default function RoomPage() {
         }
     };
 
-    const handleDeleted = async () => {
+    const handleCancelDelete = () => {
         setOpenConfirm(false);
         setDeleteId(null);
     };
 
     // Derived: rooms after applying current search and status filters
     const filteredRooms = rooms.filter((roomItem) => {
-        // status filter
         if (statusFilter !== "all" && roomItem.status !== statusFilter) return false;
-        // search by room code or renter name (case-insensitive)
         const q = search.trim().toLowerCase();
         if (!q) return true;
         const codeStr = String(roomItem.code ?? "").toLowerCase();
@@ -264,11 +265,12 @@ export default function RoomPage() {
         <>
             <ConfirmModal
                 show={openConfirm}
-                onCancel={handleDeleted}
-                onConfirm={handleDelete}
+                onCancel={handleCancelDelete}
+                onConfirm={handleDeleteConfirmed}
                 title="Xóa phòng"
                 message="Bạn có chắc chắn muốn xóa phòng này?"
             />
+
             <Container sx={{ py: 3 }}>
                 {/* Header */}
                 <Box
@@ -295,192 +297,62 @@ export default function RoomPage() {
                             Quản lí phòng trọ và căn hộ của bạn
                         </Typography>
                     </Box>
-
-                    Thêm phòng
-                </Button>
-            </Box>
-
-            {/* Room Cards */}
-            <Grid container spacing={2} sx={{ mb: 3 }} alignItems="stretch">
-                {rooms.map((roomItem) => {
-                    const chip = statusChip(roomItem.status);
-                    const dormName = dormNames[roomItem.dormId] || roomItem.dormId;
-                    const createdMs = roomItem.createdAt ?? roomItem._creationTime;
-                    const renterName = roomItem.currentRenterId ? renterNames[roomItem.currentRenterId] : null;
-                    const avatarLetter = renterName ? renterName.charAt(0).toUpperCase() : null;
-
-                    return (
-                        <Grid item xs={12} sm={6} md={6} key={roomItem._id}>
-                            <Box
-                                sx={{
-                                    position: "relative",
-                                    border: "1px solid #e0e0e0",
-                                    borderRadius: 2,
-                                    p: 2.5,
-                                    backgroundColor: "white",
-                                    boxShadow: "0 2px 4px rgba(0,0,0,0.08)",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 1.25,
-                                    height: "100%",
-                                    minHeight: 240,
-                                    cursor: "pointer",
-                                    transition: "all 0.3s ease-in-out",
-                                    '&:hover': {
-                                        boxShadow: "0 8px 24px rgba(123,31,162,0.15)",
-                                        transform: "translateY(-2px)",
-                                        borderColor: "#7b1fa2",
-                                    }
-                                }}
-                                onClick={() => handleOpenInvoiceDialog(roomItem._id)}
-                            >
-                                <Stack direction="row" alignItems="center" justifyContent="space-between">
-                                    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                                        Phòng {roomItem.code}
-                                    </Typography>
-                                    <Stack direction="row" alignItems="center" spacing={1}>
-                                        <Chip size="small" label={chip.label} color={chip.color} sx={{ fontWeight: 500 }} />
-                                    </Stack>
-                                </Stack>
-
-                                {/* Optional renter row */}
-                                {renterName && (
-                                    <Stack direction="row" spacing={1.5} alignItems="center">
-                                        <Avatar sx={{ width: 28, height: 28, bgcolor: "#7b1fa2" }}>
-                                            {avatarLetter}
-                                        </Avatar>
-                                        <Typography variant="body2">{renterName}</Typography>
-                                    </Stack>
-                                )}
-
-                                <Typography variant="body2" sx={{ mt: 0.5 }}>
-                                    Tiền thuê hàng tháng:{" "}
-                                    <span style={{ fontWeight: 700 }}>{formatVND(roomItem.price)}đ</span>
-                                </Typography>
-
-                                {/* Amenities chips (placeholder; hook up to roomAmenities if needed) */}
-                                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                                    <Chip size="small" label="WiFi" variant="outlined" />
-                                    <Chip size="small" label="Điều hòa" variant="outlined" />
-                                    <Chip size="small" label="Bàn" variant="outlined" />
-                                </Stack>
-
-                                <Typography variant="body2" color="text.secondary">
-                                    Khu trọ: {dormName}
-                                </Typography>
-
-                                <Typography variant="body2" color="text.secondary">
-                                    Ngày tạo: {createdMs ? new Date(createdMs).toLocaleDateString("vi-VN") : "-"}
-                                </Typography>
-
-                                <Stack direction="row" spacing={1} sx={{ pt: 0.5 }}>
-                                    <Button
-                                        size="small"
-                                        variant="outlined"
-                                        disabled
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        Sửa
-                                    </Button>
-                                    <Button
-                                        size="small"
-                                        color="error"
-                                        variant="outlined"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDelete(roomItem._id);
-                                        }}
-                                    >
-                                        Xóa
-                                    </Button>
-                                </Stack>
-                            </Box>
-                        </Grid>
-                    );
-                })}
-            </Grid>
-
-            {/* No Data */}
-            {rooms.length === 0 && !loading && (
-                <Box sx={{ textAlign: "center", py: 8 }}>
-                    <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-                        Chưa có phòng nào
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                        Bắt đầu bằng cách thêm phòng mới
-                    </Typography>
-                    <Button
-                        variant="contained"
-                        startIcon={<Add />}
-                        onClick={() => handleOpenCreate()}
-                        disabled={loading || !landlordId}
-                        sx={{
-                            backgroundColor: "#7b1fa2",
-                            "&:hover": { backgroundColor: "#6a1b9a" },
-                            textTransform: "none",
-                            fontFamily: "Inter, Helvetica",
-                            fontSize: "13.3px",
-                            fontWeight: 500,
-                            mr: 1,
-                        }}
-                    >
+                    <Button onClick={() => handleOpenCreate()} startIcon={<Add />}>
                         Thêm phòng
                     </Button>
                 </Box>
 
-                {/* Summary metrics */}
-                <Box sx={{ mb: 2, width: "100%", maxWidth: 990 }}>
-                    {(() => {
-                        const total = rooms.length;
-                        const occupied = rooms.filter((r) => r.status === "occupied").length;
-                        const vacant = rooms.filter((r) => r.status === "vacant").length;
-                        const maintenance = rooms.filter((r) => r.status === "maintenance").length;
-                        const rate = total > 0 ? Math.round((occupied / total) * 100) : 0;
+                {/* Summary + Search */}
+                {rooms.length > 0 && (
+                    <Box sx={{ mb: 2, width: "100%", maxWidth: 990 }}>
+                        {(() => {
+                            const total = rooms.length;
+                            const occupied = rooms.filter((r) => r.status === "occupied").length;
+                            const vacant = rooms.filter((r) => r.status === "vacant").length;
+                            const maintenance = rooms.filter((r) => r.status === "maintenance").length;
+                            const rate = total > 0 ? Math.round((occupied / total) * 100) : 0;
 
-                        const cardSx = {
-                            border: "1px solid #e0e0e0",
-                            borderRadius: 3,
-                            px: 2.5,
-                            py: 2,
-                            backgroundColor: "white",
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                        };
-                        const labelSx = { color: "text.secondary", fontSize: 14, fontWeight: 600 };
-                        const valueSx = { mt: 0.5, fontWeight: 700, fontSize: 22 };
+                            const cardSx = {
+                                border: "1px solid #e0e0e0",
+                                borderRadius: 3,
+                                px: 2.5,
+                                py: 2,
+                                backgroundColor: "white",
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                            };
+                            const labelSx = { color: "text.secondary", fontSize: 14, fontWeight: 600 };
+                            const valueSx = { mt: 0.5, fontWeight: 700, fontSize: 22 };
 
-                        return (
-                            <Box
-                                sx={{
-                                    display: "grid",
-                                    gridTemplateColumns: {
-                                        xs: "repeat(2, 1fr)",
-                                        sm: "repeat(4, 1fr)",
-                                    },
-                                    gap: 2,
-                                }}
-                            >
-                                <Box sx={cardSx}>
-                                    <Typography sx={labelSx}>Tổng số phòng</Typography>
-                                    <Typography sx={valueSx}>{total}</Typography>
+                            return (
+                                <Box
+                                    sx={{
+                                        display: "grid",
+                                        gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(4, 1fr)" },
+                                        gap: 2,
+                                    }}
+                                >
+                                    <Box sx={cardSx}>
+                                        <Typography sx={labelSx}>Tổng số phòng</Typography>
+                                        <Typography sx={valueSx}>{total}</Typography>
+                                    </Box>
+                                    <Box sx={cardSx}>
+                                        <Typography sx={labelSx}>Đang cho thuê</Typography>
+                                        <Typography sx={valueSx}>{occupied}</Typography>
+                                    </Box>
+                                    <Box sx={cardSx}>
+                                        <Typography sx={labelSx}>Còn trống</Typography>
+                                        <Typography sx={valueSx}>{vacant}</Typography>
+                                    </Box>
+                                    <Box sx={cardSx}>
+                                        <Typography sx={labelSx}>Tỷ lệ lấp đầy</Typography>
+                                        <Typography sx={{ ...valueSx, color: "#7b1fa2" }}>{rate}%</Typography>
+                                    </Box>
                                 </Box>
-                                <Box sx={cardSx}>
-                                    <Typography sx={labelSx}>Đang cho thuê</Typography>
-                                    <Typography sx={valueSx}>{occupied}</Typography>
-                                </Box>
-                                <Box sx={cardSx}>
-                                    <Typography sx={labelSx}>Còn trống</Typography>
-                                    <Typography sx={valueSx}>{vacant}</Typography>
-                                </Box>
-                                <Box sx={cardSx}>
-                                    <Typography sx={labelSx}>Tỷ lệ lấp đầy</Typography>
-                                    <Typography sx={{ ...valueSx, color: "#7b1fa2" }}>{rate}%</Typography>
-                                </Box>
-                            </Box>
-                        );
-                    })()}
-                </Box>
+                            );
+                        })()}
+                    </Box>
+                )}
 
-                {/* Search and Filters */}
                 <SearchRoomForm
                     search={search}
                     status={statusFilter}
@@ -489,24 +361,39 @@ export default function RoomPage() {
                 />
 
                 {/* Room Cards */}
-                <Grid
-                    style={{ cursor: "pointer" }}
-                    container
-                    spacing={3}
-                    sx={{ mb: 3 }}
-                    alignItems="stretch"
-                    justifyContent="flex-start"
-                >
+                <Grid container spacing={3} sx={{ mb: 3 }} alignItems="stretch" justifyContent="flex-start">
                     {filteredRooms.length === 0 ? (
                         <Grid item xs={12}>
                             <Typography align="center" color="text.secondary" sx={{ fontStyle: "italic" }}>
-                                Không tìm thấy phòng phù hợp
+                                {rooms.length === 0 ? "Chưa có phòng nào" : "Không tìm thấy phòng phù hợp"}
                             </Typography>
+                            {rooms.length === 0 && !loading && (
+                                <Box sx={{ textAlign: "center", mt: 2 }}>
+                                    <Button
+                                        variant="contained"
+                                        startIcon={<Add />}
+                                        onClick={() => handleOpenCreate()}
+                                        disabled={loading || !landlordId}
+                                        sx={{
+                                            backgroundColor: "#7b1fa2",
+                                            "&:hover": { backgroundColor: "#6a1b9a" },
+                                            textTransform: "none",
+                                            fontFamily: "Inter, Helvetica",
+                                            fontSize: "13.3px",
+                                            fontWeight: 500,
+                                        }}
+                                    >
+                                        Thêm phòng
+                                    </Button>
+                                </Box>
+                            )}
                         </Grid>
                     ) : (
                         filteredRooms.map((roomItem) => {
                             const chip = statusChip(roomItem.status);
                             const createdMs = roomItem.createdAt ?? roomItem._creationTime;
+                            const renterName = roomItem.currentRenterId ? renterNames[roomItem.currentRenterId] : null;
+                            const avatarLetter = renterName ? renterName.charAt(0).toUpperCase() : null;
 
                             return (
                                 <Grid item xs={12} sm={6} md={4} lg={4} xl={4} key={roomItem._id}>
@@ -536,7 +423,9 @@ export default function RoomPage() {
                                                 borderColor: "#7b1fa2",
                                                 boxShadow: "0 0 0 3px rgba(123,31,162,0.18)",
                                             },
+                                            cursor: "pointer",
                                         }}
+                                        onClick={() => handleOpenInvoiceDialog(roomItem._id)}
                                     >
                                         <Box sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
                                             <Typography
@@ -580,7 +469,6 @@ export default function RoomPage() {
                                             </Box>
                                         </Box>
 
-                                        {/* Renter Information */}
                                         <Box>
                                             {roomItem.currentRenterId ? (
                                                 <Typography
@@ -612,7 +500,7 @@ export default function RoomPage() {
                                         </Box>
 
                                         <Typography variant="body2" sx={{ mt: 0.5 }}>
-                                            Tiền thuê:{"  "}
+                                            Tiền thuê:{" "}
                                             <span style={{ fontWeight: 700 }}>{formatVND(roomItem.price)}đ/tháng</span>
                                         </Typography>
 
@@ -633,7 +521,6 @@ export default function RoomPage() {
                     )}
                 </Grid>
 
-                {/* Kebab menu for room actions */}
                 <Menu
                     anchorEl={menuAnchor}
                     open={openMenu}
@@ -655,31 +542,6 @@ export default function RoomPage() {
                     </MenuItem>
                 </Menu>
 
-                {/* No Data */}
-                {rooms.length === 0 && !loading && (
-                    <Box sx={{ textAlign: "center", py: 8, width: "100%" }}>
-                        <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-                            Chưa có phòng nào
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                            Bắt đầu bằng cách thêm phòng mới
-                        </Typography>
-                        <Button
-                            variant="contained"
-                            onClick={() => handleOpenCreate()}
-                            disabled={loading || !landlordId}
-                            sx={{
-                                backgroundColor: "#7b1fa2",
-                                "&:hover": { backgroundColor: "#6a1b9a" },
-                                textTransform: "none",
-                            }}
-                        >
-                            Thêm phòng
-                        </Button>
-                    </Box>
-                )}
-
-                {/* Loading Overlay */}
                 {loading && (
                     <Box
                         sx={{
@@ -716,26 +578,15 @@ export default function RoomPage() {
                     roomData={updateRoomId ? rooms.find((r) => r._id === updateRoomId) : null}
                     onUpdate={handleRoomUpdated}
                 />
+
+                {invoiceDialogOpen && (
+                    <CreateInvoiceDialog
+                        open={invoiceDialogOpen}
+                        onClose={handleCloseInvoiceDialog}
+                        roomId={selectedRoomId}
+                    />
+                )}
             </Container>
         </>
-            )}
-
-            <CreateRoomForm
-                open={openCreate}
-                onClose={handleCloseCreate}
-                landlordId={landlordId}
-                dormId={createDormId}
-                onCreated={handleRoomCreated}
-            />
-
-            {invoiceDialogOpen && (
-                <CreateInvoiceDialog
-                    open={invoiceDialogOpen}
-                    onClose={handleCloseInvoiceDialog}
-                    roomId={selectedRoomId}
-                />
-            )}
-        </Container>
     );
 }
-
