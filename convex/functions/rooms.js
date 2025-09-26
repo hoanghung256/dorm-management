@@ -21,6 +21,7 @@ export const listByDorm = query({
         return await ctx.db
             .query("rooms")
             .withIndex("by_dorm", (q) => q.eq("dormId", dormId))
+            .order((q) => q.eq(q.field("code"), code))
             .collect();
     },
 });
