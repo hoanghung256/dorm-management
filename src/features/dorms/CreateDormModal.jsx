@@ -11,13 +11,19 @@ function CreateDormModal({ landlordId, editDorm, open, onClose, refresh }) {
     useEffect(() => {
         if (editDorm && !form) {
             setForm({
+                landlordId: landlordId || null,
                 _id: editDorm._id || null,
                 name: editDorm.name || "",
                 address: editDorm.address || "",
                 involveDueDate: editDorm.involveDueDate || 1,
             });
         }
+        console.log("landlordId", landlordId);
     }, [editDorm]);
+
+    useEffect(() => {
+        console.log("landlordId", landlordId);
+    }, [landlordId]);
 
     const handleSubmit = async () => {
         setSubmitting(true);

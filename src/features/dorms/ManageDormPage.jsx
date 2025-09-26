@@ -15,6 +15,10 @@ import {
     Tooltip,
     Divider,
     Grid,
+    Menu,
+    MenuItem,
+    ListItemIcon,
+    ListItemText,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import BuildIcon from "@mui/icons-material/Build";
@@ -29,6 +33,8 @@ import { convexMutation, convexQueryOneTime } from "../../services/convexClient"
 import CreateDormModal from "./CreateDormModal";
 import AddAmenitiesModal from "./AddAmenitiesModal";
 import ConfirmModal from "../../components/ConfirmModal";
+import EditIcon from "@mui/icons-material/Edit";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 
 function ManageDormPage() {
     const user = useConvexUserData();
@@ -88,7 +94,7 @@ function ManageDormPage() {
         getDorms();
     };
 
-     return (
+    return (
         <>
             <CreateDormModal
                 landlordId={user?.detail?._id}
@@ -149,10 +155,11 @@ function ManageDormPage() {
                     </Typography>
                 )}
 
-                <Box sx={{ 
-                    
-                    padding: { xs: 0, md: 1 }
-                }}>
+                <Box
+                    sx={{
+                        padding: { xs: 0, md: 1 },
+                    }}
+                >
                     <Grid container spacing={4}>
                         {pageData?.items.map((d) => (
                             <Grid 
@@ -162,97 +169,75 @@ function ManageDormPage() {
                                 key={d._id}
                             >
                                 <Paper
-                                    elevation={4} 
-                                    sx={{ 
-                                        p: 3, 
-                                        display: "flex", 
-                                        flexDirection: "column", 
+                                    elevation={4}
+                                    sx={{
+                                        p: 3,
+                                        display: "flex",
+                                        flexDirection: "column",
                                         gap: 2,
-                                        width: '550px',
-                                        minHeight: '340px',
-                                        height: '100%', 
+                                        justifyContent: "space-between",
+                                        width: 400,
+                                        minHeight: "340px",
+                                        height: "100%",
                                         borderRadius: 5,
-                                        position: 'relative',
-                                        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-                                        transition: 'transform 0.2s, box-shadow 0.2s',
-                                        '&:hover': {
-                                            transform: 'translateY(-4px)',
-                                            boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
+                                        position: "relative",
+                                        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+                                        transition: "transform 0.2s, box-shadow 0.2s",
+                                        "&:hover": {
+                                            transform: "translateY(-4px)",
+                                            boxShadow: "0 8px 16px rgba(0, 0, 0, 0.2)",
                                         },
                                     }}
                                 >
-                                    
-                                    
                                     {/* HÀNG 1: TÊN VÀ NÚT HÀNH ĐỘNG (HEADER CỦA CARD) */}
-                                    <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+                                    <Stack
+                                        direction="row"
+                                        justifyContent="space-between"
+                                        alignItems="center"
+                                        spacing={1}
+                                    >
                                         {/* Tên Nhà Trọ */}
                                         <Typography variant="h6" fontSize={20} fontWeight={700} sx={{ pr: 1 }}>
                                             {d.name}
                                         </Typography>
-                                        
+
                                         {/* Cụm nút Hành động (Quản lý phòng, Sửa, Xóa) */}
                                         <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
-                                            
-                                            <Tooltip title="Sửa">
-                                                <IconButton size="small" onClick={() => openEdit(d)}>
-                                                    <EditIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Xóa">
-                                                <IconButton size="small" color="error" onClick={() => handleDelete(d)}>
-                                                    <DeleteIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
+                                            <ActionMenu
+                                                d={d}
+                                                navigateToRoomsPage={() => navigate(`/landlord/dorms/${d._id}`)}
+                                                openEditAmenities={openEditAmenities}
+                                                openEditDorm={openEditDorm}
+                                                handleDelete={handleDelete}
+                                            />
                                         </Stack>
                                     </Stack>
-
                                     <Divider /> {/* Đường phân cách mỏng */}
-
                                     {/* BỐ CỤC DỌC MỚI CHO THÔNG TIN CHI TIẾT */}
-                                    <Stack spacing={3}> 
-                                        
+                                    <Stack spacing={3}>
                                         {/* 1. Địa chỉ */}
                                         <Stack spacing={0.5}>
                                             <Typography variant="body2" color="text.secondary" fontWeight={500}>
                                                 Địa chỉ
                                             </Typography>
                                             <Stack direction="row" alignItems="center" spacing={0.5}>
-                                                <Box component="span" sx={{ fontSize: '1rem', color: 'text.secondary' }}>📍</Box> 
-                                                <Typography variant="body1">
-                                                    {d.address || "-"}
-                                                </Typography>
+                                                <Box
+                                                    component="span"
+                                                    sx={{ fontSize: "1rem", color: "text.secondary" }}
+                                                >
+                                                    📍
+                                                </Box>
+                                                <Typography variant="body1">{d.address || "-"}</Typography>
                                             </Stack>
                                         </Stack>
 
-                                        {/* 2. Mô tả (đặt ngay dưới địa chỉ) */}
-                                        <Stack spacing={0.5}>
-                                            <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                                                Mô tả
-                                            </Typography>
-                                            <Typography 
-                                                variant="body2" 
-                                                color="text.primary" 
-                                                // 🌟 ĐOẠN CODE CẦN THIẾT ĐỂ CẮT NỘI DUNG VÀ KHÔNG KÉO DÀI THẺ
-                                                sx={{ 
-                                                    fontStyle: 'italic',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    display: '-webkit-box',
-                                                    WebkitLineClamp: 3, // Giới hạn TỐI ĐA 3 dòng
-                                                    WebkitBoxOrient: 'vertical',
-                                                }}
-                                            >
-                                                {d.description || "Ký túc xá sinh viên Sunrise là hình mẫu lý tưởng cho cuộc sống hiện đại, tiện nghi và an toàn, đặc biệt được thiết kế để tối ưu hóa trải nghiệm học tập và sinh hoạt của sinh viên. Với phương châm 'Nhà là nơi để trở về, và học tập là nơi để phát triển,' chúng tôi cam kết cung cấp một môi trường sống chất lượng cao, vượt xa tiêu chuẩn nhà trọ thông thường."}
-                                            </Typography>
-                                        </Stack>
-                                        
                                         {/* 3. Thông tin Chip (Ngày chốt và Ngày tạo) */}
-                                       <Stack 
-                                            direction={{ xs: 'column', sm: 'row' }} // Xếp ngang trên màn hình lớn, xếp dọc trên màn hình nhỏ
-                                            justifyContent="space-between" 
-                                            alignItems={{ xs: 'flex-start', sm: 'flex-end' }} 
+                                        <Stack
+                                            direction={{ xs: "column", sm: "row" }} // Xếp ngang trên màn hình lớn, xếp dọc trên màn hình nhỏ
+                                            justifyContent="space-between"
+                                            alignItems={{ xs: "flex-start", sm: "flex-end" }}
                                             spacing={2}
-                                            sx={{ mt: 'auto' }} // ĐẨY XUỐNG DƯỚI CÙNG
+                                            sx={{ mt: "auto" }} // ĐẨY XUỐNG DƯỚI CÙNG
                                         >
                                             {/* Cột Trái: Thông tin Chip (Ngày chốt và Ngày tạo) */}
                                             <Stack spacing={0.5}>
@@ -262,32 +247,35 @@ function ManageDormPage() {
                                                 <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                                                     <Chip
                                                         size="small"
-                                                        label={d.involveDueDate ? `Chốt: Ngày ${d.involveDueDate}` : "Ngày chốt: Chưa đặt"}
-                                                        
-                                                        variant="filled" 
-                                                        sx={{ width: 'fit-content', height: 24, fontSize: '0.8rem' }}
+                                                        label={
+                                                            d.involveDueDate
+                                                                ? `Chốt ngày ${d.involveDueDate} hàng tháng`
+                                                                : "Ngày chốt: Chưa đặt"
+                                                        }
+                                                        variant="filled"
+                                                        sx={{ width: "fit-content", height: 24, fontSize: "0.8rem" }}
                                                     />
                                                     {d.createdAt && (
                                                         <Chip
                                                             size="small"
-                                                            label={"Tạo: " + new Date(d.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", })}
+                                                            label={
+                                                                "Tạo: " +
+                                                                new Date(d.createdAt).toLocaleDateString("vi-VN", {
+                                                                    day: "2-digit",
+                                                                    month: "2-digit",
+                                                                    year: "numeric",
+                                                                })
+                                                            }
                                                             variant="outlined"
-                                                            sx={{ width: 'fit-content', height: 24, fontSize: '0.8rem' }}
+                                                            sx={{
+                                                                width: "fit-content",
+                                                                height: 24,
+                                                                fontSize: "0.8rem",
+                                                            }}
                                                         />
                                                     )}
                                                 </Stack>
                                             </Stack>
-
-                                            {/* Cột Phải: NÚT "PHÒNG" (HÀNH ĐỘNG) */}
-                                            <Button
-                                                size="large" // Tăng kích thước nút ở cuối card
-                                                variant="contained"
-                                                startIcon={<MeetingRoomIcon />}
-                                                onClick={() => navigate(`/landlord/dorms/${d._id}`)}
-                                                sx={{ minWidth: 120, py: 1 }}
-                                            >
-                                                Quản lý phòng
-                                            </Button>
                                         </Stack>
                                     </Stack>
                                 </Paper>
@@ -306,6 +294,86 @@ function ManageDormPage() {
 
                 <Divider sx={{ mt: 4 }} />
             </Box>
+        </>
+    );
+}
+
+function ActionMenu({ d, openEditAmenities, openEditDorm, handleDelete, navigateToRoomsPage }) {
+    const [anchorEl, setAnchorEl] = useState(null);
+    const open = Boolean(anchorEl);
+
+    const handleClick = (event) => {
+        setAnchorEl(event.currentTarget);
+    };
+    const handleClose = () => {
+        setAnchorEl(null);
+    };
+
+    return (
+        <>
+            <Tooltip title="Tùy chọn">
+                <IconButton
+                    size="small"
+                    onClick={handleClick}
+                    aria-controls={open ? "action-menu" : undefined}
+                    aria-haspopup="true"
+                    aria-expanded={open ? "true" : undefined}
+                >
+                    <MoreVertIcon />
+                </IconButton>
+            </Tooltip>
+            <Menu
+                id="action-menu"
+                anchorEl={anchorEl}
+                open={open}
+                onClose={handleClose}
+                PaperProps={{
+                    sx: { minWidth: 160 },
+                }}
+            >
+                <MenuItem onClick={navigateToRoomsPage}>
+                    <ListItemIcon>
+                        <MeetingRoomIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText primary="Quản lý phòng" />
+                </MenuItem>
+
+                <MenuItem
+                    onClick={() => {
+                        openEditAmenities(d._id, d.amenities);
+                        handleClose();
+                    }}
+                >
+                    <ListItemIcon>
+                        <BuildIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText primary="Sửa vật tư" />
+                </MenuItem>
+
+                <MenuItem
+                    onClick={() => {
+                        openEditDorm(d);
+                        handleClose();
+                    }}
+                >
+                    <ListItemIcon>
+                        <EditIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText primary="Sửa thông tin trọ" />
+                </MenuItem>
+
+                <MenuItem
+                    onClick={() => {
+                        handleDelete(d);
+                        handleClose();
+                    }}
+                >
+                    <ListItemIcon>
+                        <DeleteIcon fontSize="small" color="error" />
+                    </ListItemIcon>
+                    <ListItemText primary="Xóa" />
+                </MenuItem>
+            </Menu>
         </>
     );
 }

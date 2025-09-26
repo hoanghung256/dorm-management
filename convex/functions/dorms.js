@@ -86,7 +86,7 @@ export const saveDorm = mutation({
             if (dormCount >= landlord.dormLimit) {
                 throw new Error("Đạt số lượng trọ tối đa");
             }
-            await ctx.db.insert("dorms", { name, address, involveDueDate });
+            await ctx.db.insert("dorms", { landlordId, name, address, involveDueDate });
             return { success: true, created: true };
         }
         // Update existing
