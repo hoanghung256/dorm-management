@@ -1,12 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { convexMutation } from "../../services/convexClient";
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from "@mui/material";
 
-function CreateDormModal({ landlordId, open, onClose, refresh }) {
-    const [form, setForm] = useState({ name: "", address: "", involveDueDate: 1 });
+function CreateDormModal({ landlordId, editDorm, open, onClose, refresh }) {
+    const [form, setForm] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [globalError, setGlobalError] = useState("");
+
+    useEffect(() => {
+        if (editDorm && !form) {
+            setForm({
+                _id: editDorm._id || null,
+                name: editDorm.name || "",
+                address: editDorm.address || "",
+                involveDueDate: editDorm.involveDueDate || 1,
+            });
+        }
+    }, [editDorm]);
 
     const handleSubmit = async () => {
         setSubmitting(true);
@@ -17,24 +28,16 @@ function CreateDormModal({ landlordId, open, onClose, refresh }) {
             if (form.involveDueDate < 1 || form.involveDueDate > 31)
                 throw new Error("Ngày chốt (involveDueDate) phải từ 1-31");
 
-            // if (editing) {
-            //     await updateDorm({
-            //         dormId: editing._id,
-            //         name: form.name.trim(),
-            //         address: form.address.trim(),
-            //         involveDueDate: form.involveDueDate,
-            //     });
-            // } else {
-            await convexMutation(api.functions.dorms.createDorm, {
+            await convexMutation(api.functions.dorms.saveDorm, {
                 landlordId,
+                _id: form._id || undefined,
                 name: form.name.trim(),
                 address: form.address.trim(),
                 involveDueDate: form.involveDueDate,
             });
-            // }
-            // Refresh danh sách: reset cursor và để query tự tải lại
-            // setDorms([]);
+
             refresh();
+            setForm(null);
             onClose();
         } catch (err) {
             setGlobalError(err.message || "Lỗi khi lưu");
@@ -43,19 +46,26 @@ function CreateDormModal({ landlordId, open, onClose, refresh }) {
         }
     };
 
+    const handleClose = () => {
+        if (submitting) return;
+        setForm(null);
+        setGlobalError("");
+        onClose();
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((f) => ({ ...f, [name]: name === "involveDueDate" ? Number(value) : value }));
     };
     return (
-        <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-            <DialogTitle>{"Thêm Trọ"}</DialogTitle>
+        <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+            <DialogTitle>{editDorm ? "Chỉnh Sửa Trọ" : "Thêm Trọ"}</DialogTitle>
             <DialogContent dividers>
                 <Stack component="form" spacing={2} mt={1}>
                     <TextField
                         label="Tên trọ"
                         name="name"
-                        value={form.name}
+                        value={form?.name}
                         onChange={handleChange}
                         required
                         fullWidth
@@ -64,7 +74,7 @@ function CreateDormModal({ landlordId, open, onClose, refresh }) {
                     <TextField
                         label="Địa chỉ"
                         name="address"
-                        value={form.address}
+                        value={form?.address}
                         onChange={handleChange}
                         fullWidth
                         multiline
@@ -74,7 +84,7 @@ function CreateDormModal({ landlordId, open, onClose, refresh }) {
                         label="Ngày chốt (1-31)"
                         name="involveDueDate"
                         type="number"
-                        value={form.involveDueDate}
+                        value={form?.involveDueDate}
                         onChange={handleChange}
                         inputProps={{ min: 1, max: 31 }}
                         required
@@ -88,11 +98,11 @@ function CreateDormModal({ landlordId, open, onClose, refresh }) {
                 </Stack>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose} disabled={submitting}>
+                <Button onClick={handleClose} disabled={submitting}>
                     Hủy
                 </Button>
                 <Button onClick={handleSubmit} variant="contained" disabled={submitting || !landlordId}>
-                    {submitting ? "Đang lưu..." : "Tạo mới"}
+                    {submitting ? "Đang lưu..." : "Lưu"}
                 </Button>
             </DialogActions>
         </Dialog>

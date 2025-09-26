@@ -1,28 +1,35 @@
-function ConfirmModal({ show, title, message, onConfirm, onCancel, confirmText = "Confirm", cancelText = "Cancel" }) {
-    if (!show) return null;
+import {
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogContentText,
+    DialogActions,
+    Button,
+    IconButton,
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 
+function ConfirmModal({ show, title, message, onConfirm, onCancel, confirmText = "Xác nhận", cancelText = "Hủy" }) {
     return (
-        <div className="modal show d-block" tabIndex="-1" role="dialog" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-            <div className="modal-dialog" role="document">
-                <div className="modal-content">
-                    <div className="modal-header">
-                        <h5 className="modal-title">{title}</h5>
-                        <button type="button" className="btn-close" aria-label="Close" onClick={onCancel}></button>
-                    </div>
-                    <div className="modal-body">
-                        <p>{message}</p>
-                    </div>
-                    <div className="modal-footer">
-                        <button type="button" className="btn btn-secondary" onClick={onCancel}>
-                            {cancelText}
-                        </button>
-                        <button type="button" className="btn btn-primary" onClick={onConfirm}>
-                            {confirmText}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <Dialog open={show} onClose={onCancel} maxWidth="xs" fullWidth>
+            <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                {title}
+                <IconButton size="small" onClick={onCancel}>
+                    <CloseIcon fontSize="small" />
+                </IconButton>
+            </DialogTitle>
+            <DialogContent dividers>
+                <DialogContentText>{message}</DialogContentText>
+            </DialogContent>
+            <DialogActions>
+                <Button variant="outlined" onClick={onCancel}>
+                    {cancelText}
+                </Button>
+                <Button variant="contained" onClick={onConfirm} color="primary">
+                    {confirmText}
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
 }
 
