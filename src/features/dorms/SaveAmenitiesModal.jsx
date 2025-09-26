@@ -15,7 +15,7 @@ import { convexMutation } from "../../services/convexClient";
 import { api } from "../../../convex/_generated/api";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-function AddAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh }) {
+function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh }) {
     const [amenities, setAmenities] = useState([]);
 
     useEffect(() => {
@@ -147,4 +147,4 @@ function AddAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh }
     );
 }
 
-export default AddAmenitiesModal;
+export default SaveAmenitiesModal;

@@ -3,7 +3,7 @@ import { api } from "../../../convex/_generated/api";
 import { convexMutation } from "../../services/convexClient";
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from "@mui/material";
 
-function CreateDormModal({ landlordId, editDorm, open, onClose, refresh }) {
+function SaveDormModal({ landlordId, editDorm, open, onClose, refresh }) {
     const [form, setForm] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [globalError, setGlobalError] = useState("");
@@ -115,4 +115,4 @@ function CreateDormModal({ landlordId, editDorm, open, onClose, refresh }) {
     );
 }
 
-export default CreateDormModal;
+export default SaveDormModal;

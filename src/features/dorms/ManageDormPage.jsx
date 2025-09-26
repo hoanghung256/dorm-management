@@ -30,8 +30,8 @@ import { useNavigate } from "react-router-dom"; // Add Button
 import { api } from "../../../convex/_generated/api";
 import useConvexUserData from "../../hooks/useConvexUserData";
 import { convexMutation, convexQueryOneTime } from "../../services/convexClient";
-import CreateDormModal from "./CreateDormModal";
-import AddAmenitiesModal from "./AddAmenitiesModal";
+import SaveDormModal from "./SaveDormModal";
+import SaveAmenitiesModal from "./SaveAmenitiesModal";
 import ConfirmModal from "../../components/ConfirmModal";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -96,7 +96,7 @@ function ManageDormPage() {
 
     return (
         <>
-            <CreateDormModal
+            <SaveDormModal
                 landlordId={user?.detail?._id}
                 open={isShowEditDormModal}
                 editDorm={editDorm}
@@ -106,7 +106,7 @@ function ManageDormPage() {
                 }}
                 refresh={getDorms}
             />
-            <AddAmenitiesModal
+            <SaveAmenitiesModal
                 dormId={editDormId}
                 open={isShowEditAmenitesModal}
                 existingAmenities={editAmenities}
@@ -162,12 +162,7 @@ function ManageDormPage() {
                 >
                     <Grid container spacing={4}>
                         {pageData?.items.map((d) => (
-                            <Grid 
-                                item 
-                                     
-                                sm={6}      
-                                key={d._id}
-                            >
+                            <Grid item sm={6} key={d._id}>
                                 <Paper
                                     elevation={4}
                                     sx={{
