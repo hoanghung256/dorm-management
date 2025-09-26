@@ -14,18 +14,40 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
     useEffect(() => {
         if (!open) return;
         let cancelled = false;
+
         (async () => {
-            if (!dormId) {
-                setDormName("Tự động chọn khu trọ đầu tiên");
-                return;
-            }
+            setDormLoading(true);
             try {
-                const d = await convexQueryOneTime(api.functions.dorms.getById, { dormId });
-                if (!cancelled) setDormName(d?.name || dormId);
-            } catch {
-                if (!cancelled) setDormName(dormId);
+                // Load dorm name
+                if (dormId && api.functions?.dorms?.getById) {
+                    console.log("Loading dorm name for dormId:", dormId);
+                    const dorm = await convexQueryOneTime(api.functions.dorms.getById, { dormId });
+                    console.log("Loaded dorm in CreateRoomForm:", dorm);
+
+                    if (!cancelled && dorm && dorm.name) {
+                        console.log("Setting dorm name:", dorm.name);
+                        setDormName(dorm.name);
+                    } else if (!cancelled) {
+                        console.log("No dorm name, using fallback");
+                        setDormName(`Khu trọ ${dormId.slice(-4)}`);
+                    }
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    setDormName(dormId);
+                    const msg = e?.message || "";
+                    if (msg.includes("Failed to fetch") || msg.includes("TypeError")) {
+                        setError("Không thể kết nối máy chủ. Hãy chạy `npx convex dev` và kiểm tra VITE_CONVEX_URL.");
+                    } else {
+                        setError(msg || "Tải tên khu trọ thất bại.");
+                    }
+                    console.error("Fetch dorm name failed:", e);
+                }
+            } finally {
+                if (!cancelled) setDormLoading(false);
             }
         })();
+
         return () => {
             cancelled = true;
         };
@@ -37,7 +59,6 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
         setError("");
 
         try {
-            if (!landlordId) throw new Error("Thiếu landlordId.");
             const trimmed = code.trim();
             if (!trimmed) throw new Error("Mã phòng không được để trống.");
 
@@ -56,7 +77,13 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
             setPrice("");
             onCreated?.();
         } catch (err) {
-            setError(err?.message || "Tạo phòng thất bại.");
+            const msg = err?.message || "Tạo phòng thất bại.";
+            if (msg.includes("Failed to fetch")) {
+                setError("Không thể kết nối máy chủ. Hãy chạy `npx convex dev` và kiểm tra VITE_CONVEX_URL.");
+            } else {
+                setError(msg);
+            }
+            console.error("Create room failed:", err);
         } finally {
             setSubmitting(false);
         }
@@ -71,7 +98,20 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
     };
 
     return (
-        <Dialog open={open} onClose={handleClose} fullWidth maxWidth="xs" component="form" onSubmit={handleSubmit}>
+        <Dialog
+            open={open}
+            onClose={handleClose}
+            fullWidth
+            maxWidth="sm"
+            component="form"
+            onSubmit={handleSubmit}
+            PaperProps={{
+                sx: {
+                    borderRadius: 3,
+                    minWidth: 500,
+                },
+            }}
+        >
             <DialogTitle>Tạo phòng</DialogTitle>
             <DialogContent dividers>
                 <Stack spacing={2} sx={{ pt: 1 }}>
@@ -79,6 +119,7 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
                         label="Khu trọ"
                         value={dormLoading ? "Đang tải tên khu trọ..." : dormName || dormId || "Chưa chọn"}
                         InputProps={{ readOnly: true }}
+                        InputLabelProps={{ shrink: true }}
                         fullWidth
                     />
                     <TextField

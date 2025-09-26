@@ -90,3 +90,11 @@ export const getById = query({
         return doc ? { _id: doc._id, name: doc.name ?? null } : null;
     },
 });
+
+export const getUserById = query({
+    args: { userId: v.id("users") },
+    handler: async (ctx, { userId }) => {
+        const user = await ctx.db.get(userId);
+        return user;
+    },
+});

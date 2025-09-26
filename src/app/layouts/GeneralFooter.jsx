@@ -12,6 +12,9 @@ export default function GeneralFooter() {
                 borderTop: "1px solid rgba(0, 0, 0, 0.1)",
                 py: 3,
                 textAlign: "center",
+                position: "relative",
+                zIndex: 1100,
+                width: "100%",
             }}
         >
             <Typography variant="body2" color="text.secondary">

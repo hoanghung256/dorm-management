@@ -15,9 +15,26 @@ function GeneralLayout() {
             <GeneralHeader />
 
             <Toolbar sx={{ minHeight: NAVBAR_HEIGHT }} />
+            {/* <SideBar /> */}
 
-            <Box sx={{ display: "flex", minHeight: "100vh", flexDirection: "column", bgcolor: "background.default" }}>
-                <Box component="main" sx={{ flexGrow: 1, py: 3 }}>
+            <Box
+                sx={{
+                    display: "flex",
+                    minHeight: "100vh",
+                    flexDirection: "column",
+                    bgcolor: "background.default",
+                    position: "relative",
+                }}
+            >
+                <Box
+                    component="main"
+                    sx={{
+                        flexGrow: 1,
+                        py: 3,
+                        position: "relative",
+                        zIndex: 1,
+                    }}
+                >
                     <Container maxWidth="lg">
                         <Outlet />
                     </Container>

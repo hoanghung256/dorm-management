@@ -5,15 +5,49 @@ import { Box, Stack, List, ListItemButton, ListItemIcon, ListItemText } from "@m
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
+import GeneralHeader from "./GeneralHeader";
+import GeneralFooter from "./GeneralFooter";
 
 function LandlordLayout() {
     return (
-        <Stack direction="row" spacing={3} sx={{ minHeight: "100%" }}>
-            <Sidebar />
-            <Box component="main" sx={{ flex: 1 }}>
-                <Outlet />
+        <>
+            <GeneralHeader />
+            <Box
+                sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    minHeight: "100vh",
+                    paddingTop: "75px",
+                    position: "relative",
+                }}
+            >
+                <Stack
+                    direction="row"
+                    spacing={4}
+                    sx={{
+                        flex: 1,
+                        px: { xs: 1.5, md: 3 },
+                        py: 2,
+                        position: "relative",
+                        zIndex: 1,
+                    }}
+                >
+                    <Sidebar />
+                    <Box
+                        component="main"
+                        sx={{
+                            flex: 1,
+                            minWidth: 0,
+                            position: "relative",
+                            zIndex: 1,
+                        }}
+                    >
+                        <Outlet />
+                    </Box>
+                </Stack>
             </Box>
-        </Stack>
+            <GeneralFooter />
+        </>
     );
 }
 
@@ -35,7 +69,18 @@ function Sidebar() {
     const isActive = (to) => (to ? location.pathname.startsWith(to) : false);
 
     return (
-        <Box component="aside" sx={{ width: 260, flexShrink: 0 }}>
+        <Box
+            component="aside"
+            sx={{
+                width: { xs: 0, md: 240 },
+                display: { xs: "none", md: "block" },
+                flexShrink: 0,
+                position: "sticky",
+                top: 72,
+                alignSelf: "flex-start",
+                maxHeight: "calc(100vh - 72px)",
+            }}
+        >
             <List sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {items.map(({ key, label, to, icon }) => {
                     const active = isActive(to);
