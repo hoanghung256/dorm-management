@@ -18,6 +18,11 @@ export default function GeneralHeader() {
             sx={{
                 backgroundColor: "rgba(0, 0, 0, 0.03)",
                 height: `${NAVBAR_HEIGHT}px`,
+                width: "100%",
+                zIndex: 1200, // Higher than default AppBar zIndex (1100)
+                top: 0,
+                left: 0,
+                right: 0,
             }}
         >
             <Toolbar
@@ -33,6 +38,8 @@ export default function GeneralHeader() {
                     justifyContent: "space-between",
                     alignItems: "center",
                     px: { xs: 3, md: 12.5 },
+                    position: "relative",
+                    width: "100%",
                 }}
             >
                 {/* Logo Section */}
@@ -141,7 +148,9 @@ export default function GeneralHeader() {
                         Về chúng tôi
                     </Button>
                     {user ? (
-                        <UserButton afterSignOutUrl="/" />
+                        <Box sx={{ position: "relative", zIndex: 1250 }}>
+                            <UserButton afterSignOutUrl="/" />
+                        </Box>
                     ) : (
                         <Button
                             href="/login"
