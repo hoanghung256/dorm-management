@@ -65,7 +65,10 @@ export default defineSchema({
     })
         .index("by_landlord", ["landlordId"])
         .index("by_dorm", ["dormId"])
-        .index("by_code_landlord", ["landlordId", "code"]),
+        // Index with landlordId first then code so iteration by this index returns rooms ordered by code for a landlord
+        .index("by_code_landlord", ["landlordId", "code"])
+        // New index to allow listing rooms in a dorm ordered by code without client-side sorting
+        .index("by_dorm_code", ["dormId", "code"]),
 
     roomAmenities: defineTable({
         roomId: v.id("rooms"),

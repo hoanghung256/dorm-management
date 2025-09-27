@@ -13,6 +13,17 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Prevent layout shift from dropdowns and scrollbars */
+html {
+    overflow-y: scroll; /* Always show scrollbar to prevent layout shift */
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
 a {
     font-weight: 500;
     color: #646cff;

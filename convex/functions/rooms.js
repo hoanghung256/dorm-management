@@ -7,10 +7,12 @@ const RoomStatus = v.union(v.literal("vacant"), v.literal("occupied"), v.literal
 export const listByLandlord = query({
     args: { landlordId: v.id("landlords") },
     handler: async (ctx, { landlordId }) => {
-        return await ctx.db
+        console.log("listByLandlord called with landlordId:", landlordId);
+        const rooms = await ctx.db
             .query("rooms")
-            .withIndex("by_landlord", (q) => q.eq("landlordId", landlordId))
+            .withIndex("by_code_landlord", (q) => q.eq("landlordId", landlordId))
             .collect();
+        return rooms.sort(roomCodeComparator);
     },
 });
 
@@ -18,10 +20,12 @@ export const listByLandlord = query({
 export const listByDorm = query({
     args: { dormId: v.id("dorms") },
     handler: async (ctx, { dormId }) => {
-        return await ctx.db
+        console.log("listByDorm called with dormId:", dormId);
+        const rooms = await ctx.db
             .query("rooms")
-            .withIndex("by_dorm", (q) => q.eq("dormId", dormId))
+            .withIndex("by_dorm_code", (q) => q.eq("dormId", dormId))
             .collect();
+        return rooms.sort(roomCodeComparator);
     },
 });
 
@@ -29,11 +33,29 @@ export const listByDorm = query({
 export const getById = query({
     args: { roomId: v.id("rooms") },
     handler: async (ctx, { roomId }) => {
-        return await ctx.db.get(roomId);
+        const room = await ctx.db.get(roomId);
+        if (!room) return null;
+
+        // If room has a renter, fetch renter details with user info
+        let renterInfo = null;
+        if (room.currentRenterId) {
+            const renter = await ctx.db.get(room.currentRenterId);
+            if (renter) {
+                const user = await ctx.db.get(renter.userId);
+                renterInfo = {
+                    ...renter,
+                    user: user,
+                };
+            }
+        }
+
+        return {
+            ...room,
+            renter: renterInfo,
+        };
     },
 });
 
-// Search exact code (per landlord)
 export const searchByCode = query({
     args: { landlordId: v.id("landlords"), code: v.string() },
     handler: async (ctx, { landlordId, code }) => {
@@ -45,32 +67,13 @@ export const searchByCode = query({
     },
 });
 
-// Search by code prefix (per landlord)
-export const searchByCodePrefix = query({
-    args: {
-        landlordId: v.id("landlords"),
-        prefix: v.string(),
-        limit: v.optional(v.number()),
-    },
-    handler: async (ctx, { landlordId, prefix, limit }) => {
-        const lower = prefix;
-        const upper = prefix + "\uffff";
-        const results = await ctx.db
-            .query("rooms")
-            .withIndex("by_code_landlord", (q) => q.eq("landlordId", landlordId))
-            .filter((q) => q.and(q.gte(q.field("code"), lower), q.lte(q.field("code"), upper)))
-            .collect();
-        return limit ? results.slice(0, limit) : results;
-    },
-});
-
 // Create room (align with schema: price number, currency "VND")
 export const create = mutation({
     args: {
         landlordId: v.id("landlords"),
         code: v.string(),
         dormId: v.optional(v.id("dorms")),
-        price: v.optional(v.float64()), // accept price
+        price: v.optional(v.float64()),
     },
     handler: async (ctx, { landlordId, code, dormId, price }) => {
         const trimmedCode = code.trim();
@@ -105,7 +108,6 @@ export const create = mutation({
     },
 });
 
-// Update room
 export const update = mutation({
     args: {
         roomId: v.id("rooms"),
@@ -113,7 +115,7 @@ export const update = mutation({
         price: v.optional(v.number()),
         status: v.optional(RoomStatus),
         dormId: v.optional(v.id("dorms")),
-        currentRenterId: v.optional(v.union(v.id("renters"), v.null())), // allow clearing
+        currentRenterId: v.optional(v.union(v.id("renters"), v.null())),
     },
     handler: async (ctx, { roomId, code, price, status, dormId, currentRenterId }) => {
         const room = await ctx.db.get(roomId);
@@ -144,24 +146,43 @@ export const update = mutation({
             patch.currentRenterId = currentRenterId === null ? undefined : currentRenterId;
         }
 
+        // Validate: cannot change to occupied if resulting renter is missing
+        const resultingStatus = patch.status ?? room.status;
+        const resultingRenter = Object.prototype.hasOwnProperty.call(patch, "currentRenterId")
+            ? patch.currentRenterId
+            : room.currentRenterId;
+        if (room.status !== "occupied" && resultingStatus === "occupied" && !resultingRenter) {
+            return {
+                ok: false,
+                updated: false,
+                error: "NO_RENTER",
+                message: "Cannot mark room as occupied because it has no renter assigned.",
+            };
+        }
+
         if (Object.keys(patch).length === 0) return { ok: true, updated: false };
         await ctx.db.patch(roomId, patch);
         return { ok: true, updated: true };
     },
 });
 
-// Update only status
 export const updateStatus = mutation({
     args: { roomId: v.id("rooms"), status: RoomStatus },
     handler: async (ctx, { roomId, status }) => {
         const room = await ctx.db.get(roomId);
         if (!room) throw new Error("Room not found");
+        if (room.status !== "occupied" && status === "occupied" && !room.currentRenterId) {
+            return {
+                ok: false,
+                error: "NO_RENTER",
+                message: "Cannot mark room as occupied because it has no renter assigned.",
+            };
+        }
         await ctx.db.patch(roomId, { status });
         return { ok: true };
     },
 });
 
-// Delete room (with checks)
 export const remove = mutation({
     args: { roomId: v.id("rooms") },
     handler: async (ctx, { roomId }) => {
@@ -184,5 +205,121 @@ export const remove = mutation({
 
         await ctx.db.delete(roomId);
         return { ok: true };
+    },
+});
+
+function roomCodeComparator(a, b) {
+    const ta = tokenizeCode(a.code);
+    const tb = tokenizeCode(b.code);
+    const len = Math.max(ta.length, tb.length);
+    for (let i = 0; i < len; i++) {
+        const va = ta[i];
+        const vb = tb[i];
+        if (va === undefined) return -1;
+        if (vb === undefined) return 1;
+        if (typeof va === "number" && typeof vb === "number") {
+            if (va !== vb) return va - vb;
+        } else if (typeof va === "number") return -1;
+        else if (typeof vb === "number") return 1;
+        else {
+            const cmp = va.localeCompare(vb, undefined, { sensitivity: "base" });
+            if (cmp !== 0) return cmp;
+        }
+    }
+    return 0;
+}
+
+function tokenizeCode(code) {
+    const raw = (code || "").trim();
+    if (!raw) return [];
+    const tokens = [];
+    let current = "";
+    for (let i = 0; i < raw.length; i++) {
+        const ch = raw[i];
+        const isDigit = ch >= "0" && ch <= "9";
+        if (isDigit) {
+            if (current && !/^[0-9]+$/.test(current)) {
+                tokens.push(current);
+                current = "";
+            }
+            current += ch;
+        } else {
+            if (current && /^[0-9]+$/.test(current)) {
+                tokens.push(parseInt(current, 10));
+                current = "";
+            }
+            current += ch;
+        }
+    }
+    if (current) {
+        if (/^[0-9]+$/.test(current)) tokens.push(parseInt(current, 10));
+        else tokens.push(current);
+    }
+    return tokens;
+}
+
+export const getRoomDetails = query({
+    args: { roomId: v.id("rooms") },
+    handler: async (ctx, { roomId }) => {
+        try {
+            const room = await ctx.db.get(roomId);
+            if (!room) return null;
+
+            let renterInfo = null;
+            if (room.currentRenterId) {
+                const renter = await ctx.db.get(room.currentRenterId);
+                if (renter) {
+                    const user = await ctx.db.get(renter.userId);
+                    renterInfo = {
+                        ...renter,
+                        user: user,
+                    };
+                }
+            }
+
+            return {
+                ...room,
+                roomCode: room.code,
+                renter: renterInfo,
+            };
+        } catch (error) {
+            throw error;
+        }
+    },
+});
+
+export const getRoomAmenities = query({
+    args: { roomId: v.id("rooms") },
+    handler: async (ctx, { roomId }) => {
+        try {
+            const room = await ctx.db.get(roomId);
+            if (!room) throw new Error("Room not found");
+
+            const roomAmenities = await ctx.db
+                .query("roomAmenities")
+                .withIndex("by_room", (q) => q.eq("roomId", roomId))
+                .collect();
+
+            const amenitiesWithDetails = await Promise.all(
+                roomAmenities.map(async (ra) => {
+                    try {
+                        const amenityDetail = await ctx.db.get(ra.amenityId);
+                        return {
+                            ...ra,
+                            details: amenityDetail,
+                        };
+                    } catch (error) {
+                        return {
+                            ...ra,
+                            details: null,
+                        };
+                    }
+                }),
+            );
+
+            return amenitiesWithDetails;
+        } catch (error) {
+            throw error;
+        }
     },
 });
