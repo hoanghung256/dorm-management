@@ -53,7 +53,7 @@ const LandingPage = () => {
                         phí, tăng cường giao tiếp và xây dựng cộng đồng sinh viên văn minh.
                     </p>
                     <div className="homepage-cta">
-                        <a href="/login" className="homepage-button-primary">
+                        <a href="/login-callback" className="homepage-button-primary">
                             Bắt đầu ngay
                             <span></span>
                         </a>
