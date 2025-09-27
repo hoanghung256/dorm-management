@@ -3,6 +3,17 @@ import { v } from "convex/values";
 
 const RoomStatus = v.union(v.literal("vacant"), v.literal("occupied"), v.literal("maintenance"));
 
+// Utility: normalize a room's status based on presence/absence of currentRenterId.
+// We never mutate the DB inside queries; this is for returned value consistency only.
+function normalizeRoom(room) {
+    if (!room) return room;
+    // If a renter is linked but status says vacant -> show occupied
+    if (room.currentRenterId && room.status === "vacant") return { ...room, status: "occupied", _normalized: true };
+    // If no renter but status says occupied -> show vacant (unless maintenance)
+    if (!room.currentRenterId && room.status === "occupied") return { ...room, status: "vacant", _normalized: true };
+    return room;
+}
+
 // List by landlord
 export const listByLandlord = query({
     args: { landlordId: v.id("landlords") },
@@ -12,7 +23,8 @@ export const listByLandlord = query({
             .query("rooms")
             .withIndex("by_code_landlord", (q) => q.eq("landlordId", landlordId))
             .collect();
-        return rooms.sort(roomCodeComparator);
+        const adjusted = rooms.map(normalizeRoom);
+        return adjusted.sort(roomCodeComparator);
     },
 });
 
@@ -25,7 +37,8 @@ export const listByDorm = query({
             .query("rooms")
             .withIndex("by_dorm_code", (q) => q.eq("dormId", dormId))
             .collect();
-        return rooms.sort(roomCodeComparator);
+        const adjusted = rooms.map(normalizeRoom);
+        return adjusted.sort(roomCodeComparator);
     },
 });
 
@@ -33,8 +46,9 @@ export const listByDorm = query({
 export const getById = query({
     args: { roomId: v.id("rooms") },
     handler: async (ctx, { roomId }) => {
-        const room = await ctx.db.get(roomId);
-        if (!room) return null;
+        const raw = await ctx.db.get(roomId);
+        if (!raw) return null;
+        const room = normalizeRoom(raw);
 
         // If room has a renter, fetch renter details with user info
         let renterInfo = null;
@@ -142,15 +156,20 @@ export const update = mutation({
         if (dormId) patch.dormId = dormId;
 
         if (currentRenterId !== undefined) {
-            // allow setting a renter or clearing it (null)
             patch.currentRenterId = currentRenterId === null ? undefined : currentRenterId;
         }
+        const hasCurrentRenterIdField = Object.prototype.hasOwnProperty.call(patch, "currentRenterId");
+        const renterAdded = hasCurrentRenterIdField && patch.currentRenterId;
+        const renterRemoved = hasCurrentRenterIdField && !patch.currentRenterId; // undefined after removal
+        const effectiveStatusBefore = patch.status ?? room.status;
+        if (renterAdded && effectiveStatusBefore === "vacant") {
+            patch.status = "occupied";
+        } else if (renterRemoved && effectiveStatusBefore === "occupied") {
+            patch.status = "vacant";
+        }
 
-        // Validate: cannot change to occupied if resulting renter is missing
         const resultingStatus = patch.status ?? room.status;
-        const resultingRenter = Object.prototype.hasOwnProperty.call(patch, "currentRenterId")
-            ? patch.currentRenterId
-            : room.currentRenterId;
+        const resultingRenter = hasCurrentRenterIdField ? patch.currentRenterId : room.currentRenterId;
         if (room.status !== "occupied" && resultingStatus === "occupied" && !resultingRenter) {
             return {
                 ok: false,
@@ -188,9 +207,7 @@ export const remove = mutation({
     handler: async (ctx, { roomId }) => {
         const room = await ctx.db.get(roomId);
         if (!room) throw new Error("Room not found");
-
         if (room.currentRenterId) throw new Error("Cannot delete an occupied room");
-
         const invoice = await ctx.db
             .query("invoices")
             .withIndex("by_room", (q) => q.eq("roomId", roomId))
@@ -205,6 +222,42 @@ export const remove = mutation({
 
         await ctx.db.delete(roomId);
         return { ok: true };
+    },
+});
+
+// Optional: mutation to bulk repair status/currentRenterId mismatches based on renters table.
+export const repairOccupancy = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const rooms = await ctx.db.query("rooms").collect();
+        const renters = await ctx.db.query("renters").collect();
+        const renterByRoom = new Map();
+        renters.forEach((r) => {
+            if (r.assignedRoomId && !renterByRoom.has(r.assignedRoomId)) renterByRoom.set(r.assignedRoomId, r);
+        });
+        let patched = 0;
+        for (const room of rooms) {
+            const inferredRenter = renterByRoom.get(room._id);
+            if (inferredRenter && !room.currentRenterId) {
+                await ctx.db.patch(room._id, { currentRenterId: inferredRenter._id, status: "occupied" });
+                patched++;
+                continue;
+            }
+            if (!inferredRenter && room.currentRenterId) {
+                await ctx.db.patch(room._id, {
+                    currentRenterId: undefined,
+                    status: room.status === "maintenance" ? room.status : "vacant",
+                });
+                patched++;
+                continue;
+            }
+            if (inferredRenter && room.currentRenterId && room.status === "vacant") {
+                await ctx.db.patch(room._id, { status: "occupied" });
+                patched++;
+                continue;
+            }
+        }
+        return { ok: true, patched };
     },
 });
 
@@ -262,8 +315,9 @@ export const getRoomDetails = query({
     args: { roomId: v.id("rooms") },
     handler: async (ctx, { roomId }) => {
         try {
-            const room = await ctx.db.get(roomId);
-            if (!room) return null;
+            const raw = await ctx.db.get(roomId);
+            if (!raw) return null;
+            const room = normalizeRoom(raw);
 
             let renterInfo = null;
             if (room.currentRenterId) {

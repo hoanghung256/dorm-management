@@ -72,32 +72,29 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
                 if (roomId && api.functions?.renters?.listByRoom) {
                     try {
                         const renters = await convexQueryOneTime(api.functions.renters.listByRoom, { roomId });
-                        const enriched = await Promise.all(
-                            (renters || []).map(async (r) => {
-                                try {
-                                    if (r?.userId && api.functions?.users?.getUserById) {
-                                        const u = await convexQueryOneTime(api.functions.users.getUserById, {
-                                            userId: r.userId,
-                                        });
-                                        return {
-                                            ...r,
-                                            name: u?.name || "Unknown User",
-                                            contact: u?.phone || u?.email || "",
-                                        };
-                                    }
-                                } catch (e) {
-                                    console.warn("Failed to enrich renter user:", e);
-                                }
-                                return { ...r };
-                            }),
-                        );
-                        if (!cancelled) setAvailableRenters(enriched);
+                        if (!cancelled) setAvailableRenters(renters || []);
+
+                        if (
+                            !cancelled &&
+                            (!renters || renters.length === 0) &&
+                            roomData?.currentRenterId &&
+                            api.functions?.renters?.getById
+                        ) {
+                            try {
+                                const single = await convexQueryOneTime(api.functions.renters.getById, {
+                                    renterId: roomData.currentRenterId,
+                                });
+                                if (single) setAvailableRenters([single]);
+                            } catch (e) {
+                                console.warn("Fallback renter fetch failed:", e);
+                            }
+                        }
                     } catch (rentersError) {
                         console.error("Failed to load renters for room:", rentersError);
                         if (!cancelled) setAvailableRenters([]);
                     }
-                } else {
-                    if (!cancelled) setAvailableRenters([]);
+                } else if (!cancelled) {
+                    setAvailableRenters([]);
                 }
             } catch (e) {
                 if (!cancelled) {
