@@ -57,7 +57,7 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                         <Grid container spacing={2} alignItems="center" sx={{ mb: 2 }}>
                             <Grid item xs={2}>
                                 <TextField
-                                    label="Name"
+                                    label="Tên tiện ích"
                                     value={a.name}
                                     onChange={(e) => handleChange(i, "name", e.target.value)}
                                     fullWidth
@@ -67,31 +67,25 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                             <Grid item xs={2}>
                                 <TextField
                                     select
-                                    label="Type"
+                                    label="Loại"
                                     value={a.type}
                                     onChange={(e) => handleChange(i, "type", e.target.value)}
                                     fullWidth
                                     size="small"
                                 >
-                                    {[
-                                        "electricity",
-                                        "water",
-                                        "internet",
-                                        "garbage",
-                                        "elevator",
-                                        "management",
-                                        "other",
-                                    ].map((option) => (
-                                        <MenuItem key={option} value={option}>
-                                            {option.charAt(0).toUpperCase() + option.slice(1)}
-                                        </MenuItem>
-                                    ))}
+                                    {["Điện", "Nước", "Internet", "Rác", "Thang máy", "Quản lý", "Khác"].map(
+                                        (option) => (
+                                            <MenuItem key={option} value={option}>
+                                                {option.charAt(0).toUpperCase() + option.slice(1)}
+                                            </MenuItem>
+                                        ),
+                                    )}
                                 </TextField>
                             </Grid>
                             <Grid item xs={2}>
                                 <TextField
                                     type="number"
-                                    label="Unit Price"
+                                    label="Đơn giá"
                                     value={a.unitPrice}
                                     onChange={(e) => handleChange(i, "unitPrice", Number(e.target.value))}
                                     fullWidth
@@ -100,7 +94,7 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                             </Grid>
                             <Grid item xs={2}>
                                 <TextField
-                                    label="Unit (kWh, m³, ...)"
+                                    label="Đơn vị (kWh, m³, ...)"
                                     value={a.unit}
                                     onChange={(e) => handleChange(i, "unit", e.target.value)}
                                     fullWidth
@@ -110,15 +104,15 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                             <Grid item xs={2}>
                                 <TextField
                                     select
-                                    label="Fee Type"
+                                    label="Loại phí"
                                     value={a.unitFeeType}
                                     onChange={(e) => handleChange(i, "unitFeeType", e.target.value)}
                                     fullWidth
                                     size="small"
                                 >
-                                    <MenuItem value="metered">Metered</MenuItem>
-                                    <MenuItem value="per_person">Per person</MenuItem>
-                                    <MenuItem value="fixed">Fixed</MenuItem>
+                                    <MenuItem value="metered">Theo chỉ số</MenuItem>
+                                    <MenuItem value="per_person">Theo người</MenuItem>
+                                    <MenuItem value="fixed">Cố định</MenuItem>
                                 </TextField>
                             </Grid>
                             <Button aria-label="remove amenity" color="error" size="small" onClick={() => remove(i)}>
