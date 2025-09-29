@@ -103,9 +103,9 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                                         },
                                     }}
                                 >
-                                    <MenuItem value="" disabled>
+                                    {/* <MenuItem value="" disabled>
                                         <Typography sx={{ opacity: 0.6, fontStyle: "italic" }}>Chọn loại</Typography>
-                                    </MenuItem>
+                                    </MenuItem> */}
                                     {TYPE_OPTIONS.map((opt) => (
                                         <MenuItem key={opt.value} value={opt.value}>
                                             <Stack direction="row" spacing={1} alignItems="center">
