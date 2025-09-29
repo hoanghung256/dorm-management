@@ -17,6 +17,11 @@ import {
     Paper,
     InputAdornment,
     CircularProgress,
+    Grid,
+    List,
+    ListItem,
+    ListItemAvatar,
+    ListItemText
 } from '@mui/material';
 import ConfirmModal from '../../components/ConfirmModal';
 import {
@@ -31,6 +36,7 @@ import {
 } from '@mui/icons-material';
 import { api } from "../../../convex/_generated/api";
 import { convexQueryOneTime, convexMutation } from '../../services/convexClient.js';
+import SearchIcon from '@mui/icons-material/Search';
 
 const CreateInvoiceDialog = ({ open, onClose, roomId }) => {
     const [activeTab, setActiveTab] = useState(0);
@@ -42,6 +48,13 @@ const CreateInvoiceDialog = ({ open, onClose, roomId }) => {
     // Confirm modal states
     const [showConfirm, setShowConfirm] = useState(false);
     const [confirmData, setConfirmData] = useState(null);
+
+    //Search for renter info
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [selectedRenter, setSelectedRenter] = useState(null);
+    const [isSearching, setIsSearching] = useState(false);
+
 
     // Load data when dialog opens
     React.useEffect(() => {
@@ -357,6 +370,39 @@ const CreateInvoiceDialog = ({ open, onClose, roomId }) => {
         </Box>
     );
 
+    // Thay thế useEffect search hiện tại
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            const searchRenters = async () => {
+                setIsSearching(true);
+                try {
+                    const results = await convexQueryOneTime(api.functions.users.searchUsers, {
+                        searchTerm: searchTerm
+                    });
+                    setSearchResults(results);
+                } catch (error) {
+                    console.error('Error searching users:', error);
+                } finally {
+                    setIsSearching(false);
+                }
+            };
+            searchRenters();
+        }, 300); // Giảm delay xuống 300ms để trải nghiệm tốt hơn
+
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    const handleSearchChange = (event) => {
+        setSearchTerm(event.target.value);
+    };
+
+    // Handle select renter
+    const handleSelectRenter = (user) => {
+        setSelectedRenter(user);
+        setSearchTerm('');
+        setSearchResults([]);
+    };
+
     const AmenityCard = ({ amenity }) => (
         <Card
             sx={{
@@ -564,7 +610,217 @@ const CreateInvoiceDialog = ({ open, onClose, roomId }) => {
                         </Box>
                     </TabPanel>
                 )}
+                <TabPanel value={activeTab} index={2}>
+                    <Typography variant="h6" gutterBottom fontWeight="600" sx={{ mb: 2 }}>
+                        Thông tin người thuê
+                    </Typography>
+
+                    {/* Thay đổi phần Search Box và Search Results */}
+                    <Box sx={{ position: 'relative' }}>
+                        <TextField
+                            fullWidth
+                            value={searchTerm}
+                            onChange={handleSearchChange}
+                            placeholder="Nhập số điện thoại (0...) hoặc email (@...)"
+                            variant="outlined"
+                            size="small"
+                            autoComplete="off"
+                            autoFocus
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon color="action" />
+                                    </InputAdornment>
+                                ),
+                                endAdornment: isSearching && (
+                                    <InputAdornment position="end">
+                                        <CircularProgress size={20} />
+                                    </InputAdornment>
+                                ),
+                                sx: {
+                                    '& input': {
+                                        transition: 'all 0.3s',
+                                        '&:focus': {
+                                            outline: 'none',
+                                        }
+                                    }
+                                }
+                            }}
+                            sx={{
+                                mb: 2,
+                                '& .MuiOutlinedInput-root': {
+                                    '&.Mui-focused': {
+                                        '& > fieldset': {
+                                            borderColor: 'primary.main',
+                                            borderWidth: '2px'
+                                        }
+                                    }
+                                }
+                            }}
+                        />
+
+                        {/* Điều chỉnh cách hiển thị kết quả tìm kiếm */}
+                        {searchResults.length > 0 && (
+                            <Paper
+                                elevation={3}
+                                sx={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    left: 0,
+                                    right: 0,
+                                    zIndex: 1000,
+                                    maxHeight: 200,
+                                    overflow: 'auto',
+                                    mt: 0.5, // Thêm margin-top
+                                    border: '1px solid',
+                                    borderColor: 'divider'
+                                }}
+                            >
+                                <List dense>
+                                    {searchResults.map((user) => (
+                                        <ListItem
+                                            key={user._id}
+                                            button
+                                            onClick={() => handleSelectRenter(user)} // Sửa tên function
+                                            sx={{
+                                                '&:hover': {
+                                                    backgroundColor: 'action.hover'
+                                                }
+                                            }}
+                                        >
+                                            <ListItemAvatar>
+                                                <Avatar>{user.name?.charAt(0).toUpperCase()}</Avatar>
+                                            </ListItemAvatar>
+                                            <ListItemText
+                                                primary={user.name}
+                                                secondary={
+                                                    <React.Fragment>
+                                                        <Typography component="span" variant="body2">
+                                                            {user.email}
+                                                        </Typography>
+                                                        {user.phone && (
+                                                            <Typography
+                                                                component="span"
+                                                                variant="body2"
+                                                                sx={{ ml: 2 }}
+                                                            >
+                                                                {user.phone}
+                                                            </Typography>
+                                                        )}
+                                                    </React.Fragment>
+                                                }
+                                            />
+                                        </ListItem>
+                                    ))}
+                                </List>
+                            </Paper>
+                        )}
+                    </Box>
+
+                    {/* Selected Renter Card */}
+                    {selectedRenter && (
+                        <Paper
+                            elevation={0}
+                            variant="outlined"
+                            sx={{
+                                p: 2,
+                                mt: 2,
+                                borderRadius: 2,
+                                bgcolor: 'background.default'
+                            }}
+                        >
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                                <Avatar
+                                    sx={{
+                                        width: 56,
+                                        height: 56,
+                                        bgcolor: 'primary.main'
+                                    }}
+                                >
+                                    {selectedRenter.name?.charAt(0).toUpperCase()}
+                                </Avatar>
+                                <Box sx={{ flex: 1 }}>
+                                    <Typography variant="h6" gutterBottom>
+                                        {selectedRenter.name}
+                                    </Typography>
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} sm={6}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Email
+                                            </Typography>
+                                            <Typography variant="body1">
+                                                {selectedRenter.email}
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Số điện thoại
+                                            </Typography>
+                                            <Typography variant="body1">
+                                                {selectedRenter.phone || 'Chưa cập nhật'}
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Ngày sinh
+                                            </Typography>
+                                            <Typography variant="body1">
+                                                {selectedRenter.birthDate
+                                                    ? new Date(selectedRenter.birthDate).toLocaleDateString('vi-VN')
+                                                    : 'Chưa cập nhật'}
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Quê quán
+                                            </Typography>
+                                            <Typography variant="body1">
+                                                {selectedRenter.hometown || 'Chưa cập nhật'}
+                                            </Typography>
+                                        </Grid>
+                                    </Grid>
+                                </Box>
+                            </Box>
+
+                            {/* Thêm nút hành động */}
+                            <Box sx={{ mt: 2, display: 'flex', gap: 1, width: '100%', justifyContent: 'flex-end' }}>
+                                <Button
+                                    variant="outlined"
+                                    color="inherit"
+                                    onClick={() => setSelectedRenter(null)}
+                                >
+                                    Hủy
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    sx={{
+                                        backgroundColor: '#6d28d9',
+                                        '&:hover': { backgroundColor: '#5b21b6' }
+                                    }}
+                                    onClick={() => {
+                                        // Thêm logic assign renter vào đây
+                                        console.log('Assign renter:', selectedRenter);
+                                    }}
+                                >
+                                    Chọn làm người thuê
+                                </Button>
+                            </Box>
+                        </Paper>
+                    )}
+
+                    {/* Thêm thông báo khi không có kết quả tìm kiếm */}
+                    {searchTerm.length >= 3 && searchResults.length === 0 && !isSearching && (
+                        <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ textAlign: 'center', mt: 2 }}
+                        >
+                            Không tìm thấy kết quả phù hợp
+                        </Typography>
+                    )}
+                </TabPanel>
             </DialogContent>
+
 
             <DialogActions sx={{
                 justifyContent: 'space-between', // Spread buttons and total

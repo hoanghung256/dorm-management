@@ -214,3 +214,54 @@ export const remove = mutation({
         return { ok: true };
     },
 });
+
+export const searchRenters = query({
+    args: {
+        searchTerm: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const { searchTerm } = args;
+
+        // Tìm tất cả users match với email hoặc phone
+        const users = await ctx.db
+            .query("users")
+            .filter((q) => {
+                // if (!searchTerm) return q.ne(q.field("_id"), null); // Return all if searchTerm is empty
+                return q.or(
+                    // Search email
+                    q.contains(q.field("email").toLowerCase(), searchTerm.toLowerCase()),
+                    // Search phone
+                    q.contains(q.field("phone"), searchTerm)
+                );
+            })
+            .collect();
+
+        // Process results
+        const results = await Promise.all(
+            users.map(async (user) => {
+                const renterExists = await ctx.db
+                    .query("renters")
+                    .withIndex("by_user", (q) => q.eq("userId", user._id))
+                    .unique();
+
+                if (renterExists) {
+                    return {
+                        _id: user._id,
+                        name: user.name,
+                        email: user.email,
+                        phone: user.phone,
+                        birthDate: user.birthDate,
+                        hometown: user.hometown,
+                        renterDetail: {
+                            _id: renterExists._id,
+                            active: renterExists.active
+                        }
+                    };
+                }
+                return null;
+            })
+        );
+
+        return results.filter(result => result !== null);
+    },
+});
