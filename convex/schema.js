@@ -75,6 +75,7 @@ export default defineSchema({
         amenityId: v.id("amenities"),
         lastUsedNumber: v.number(),
         month: v.number(),
+        active: v.boolean(), // For toggle-type amenities
     }).index("by_room", ["roomId"]),
 
     invoices: defineTable({

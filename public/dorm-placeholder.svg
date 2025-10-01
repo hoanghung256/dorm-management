@@ -1,0 +1,24 @@
+<svg width="400" height="240" viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Dorm Placeholder</title>
+  <desc id="desc">Generic placeholder image for a dorm/building card</desc>
+  <defs>
+    <linearGradient id="grad" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#7b1fa2"/>
+      <stop offset="100%" stop-color="#9c27b0"/>
+    </linearGradient>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <rect width="20" height="20" fill="rgba(255,255,255,0.04)" />
+      <path d="M20 0H0V20" stroke="rgba(255,255,255,0.12)" stroke-width="1" />
+    </pattern>
+  </defs>
+  <rect width="400" height="240" fill="url(#grad)"/>
+  <rect width="400" height="240" fill="url(#grid)"/>
+  <g fill="none" stroke="#fff" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" opacity="0.9">
+    <rect x="90" y="70" width="220" height="110" rx="6"/>
+    <path d="M90 70 L200 40 L310 70" />
+    <path d="M140 110h40v70M220 110h40v70" />
+    <rect x="155" y="125" width="10" height="20" rx="1" />
+    <rect x="235" y="125" width="10" height="20" rx="1" />
+  </g>
+  <text x="200" y="220" text-anchor="middle" font-family="'Inter',Arial,sans-serif" font-size="20" fill="#ffffff" font-weight="600" opacity="0.95">Dorm Placeholder</text>
+</svg>
