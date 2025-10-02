@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { convexQueryOneTime, convexMutation } from "../../services/convexClient";
 import useClerkUserData from "../../hooks/useClerkUserData";
 import { api } from "../../../convex/_generated/api";
@@ -19,8 +19,17 @@ import {
     ListItemIcon,
     ListItemText,
     Avatar,
+    Breadcrumbs,
+    Link,
 } from "@mui/material";
-import { Add, MoreVert, EditOutlined, DeleteOutline } from "@mui/icons-material";
+import { 
+    Add, 
+    MoreVert, 
+    EditOutlined, 
+    DeleteOutline,
+    Home as HomeIcon,
+    NavigateNext as NavigateNextIcon,
+} from "@mui/icons-material";
 import ConfirmModal from "../../components/ConfirmModal";
 import UpdateRoomForm from "../../features/room/UpdateRoomForm";
 import SearchRoomForm from "./SearchRoomForm";
@@ -49,6 +58,7 @@ function statusChip(status) {
 export default function RoomPage() {
     const { user } = useClerkUserData();
     const { dormId: routeDormId } = useParams();
+    const navigate = useNavigate();
 
     const [rooms, setRooms] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -272,6 +282,33 @@ export default function RoomPage() {
             />
 
             <Container sx={{ py: 3 }}>
+                {/* Breadcrumb Navigation */}
+                <Breadcrumbs 
+                    separator={<NavigateNextIcon fontSize="small" />} 
+                    aria-label="breadcrumb"
+                    sx={{ mb: 3 }}
+                >
+                    <Link 
+                        underline="hover" 
+                        color="inherit" 
+                        component="button"
+                        onClick={() => navigate('/landlord/dorms')}
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            '&:hover': {
+                                color: 'primary.main',
+                            }
+                        }}
+                    >
+                        <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
+                        Danh sách Nhà Trọ
+                    </Link>
+                    <Typography color="text.primary" sx={{ fontWeight: 500 }}>
+                        {routeDormId ? `Phòng của nhà trọ` : 'Tất cả phòng'}
+                    </Typography>
+                </Breadcrumbs>
+
                 {/* Header */}
                 <Box
                     sx={{
@@ -297,7 +334,21 @@ export default function RoomPage() {
                             Quản lí phòng trọ và căn hộ của bạn
                         </Typography>
                     </Box>
-                    <Button onClick={() => handleOpenCreate()} startIcon={<Add />}>
+                    <Button 
+                        onClick={() => handleOpenCreate()} 
+                        startIcon={<Add />}
+                        variant="contained"
+                        sx={{
+                            backgroundColor: "#7b1fa2",
+                            textTransform: "none",
+                            fontWeight: 500,
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)",
+                            "&:hover": {
+                                backgroundColor: "#6a1b9a",
+                                boxShadow: "0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23)",
+                            }
+                        }}
+                    >
                         Thêm phòng
                     </Button>
                 </Box>

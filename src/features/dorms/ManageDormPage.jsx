@@ -25,7 +25,9 @@ import BuildIcon from "@mui/icons-material/Build";
 import HomeIcon from "@mui/icons-material/Home";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import MeetingRoomIcon from "@mui/icons-material/MeetingRoom"; // Add Button
+import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import EditIcon from "@mui/icons-material/Edit";
 import { useNavigate } from "react-router-dom"; // Add Button
 import { api } from "../../../convex/_generated/api";
 import useConvexUserData from "../../hooks/useConvexUserData";
@@ -33,8 +35,6 @@ import { convexMutation, convexQueryOneTime } from "../../services/convexClient"
 import SaveDormModal from "./SaveDormModal";
 import SaveAmenitiesModal from "./SaveAmenitiesModal";
 import ConfirmModal from "../../components/ConfirmModal";
-import EditIcon from "@mui/icons-material/Edit";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 
 function ManageDormPage() {
     const user = useConvexUserData();
@@ -160,11 +160,12 @@ function ManageDormPage() {
                         padding: { xs: 0, md: 1 },
                     }}
                 >
-                    <Grid container spacing={4}>
+                    <Grid container spacing={3}>
                         {pageData?.items.map((d) => (
                             <Grid item sm={6} key={d._id}>
                                 <Paper
                                     elevation={4}
+                                    onClick={() => navigate(`/landlord/dorms/${d._id}`)}
                                     sx={{
                                         p: 3,
                                         display: "flex",
@@ -172,11 +173,12 @@ function ManageDormPage() {
                                         gap: 2,
                                         justifyContent: "space-between",
                                         width: 400,
-                                        minHeight: "340px",
+                                        minHeight: "200px",
                                         height: "100%",
-                                        borderRadius: 5,
+                                        borderRadius: 2,
                                         position: "relative",
                                         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+                                        cursor: "pointer",
                                         transition: "transform 0.2s, box-shadow 0.2s",
                                         "&:hover": {
                                             transform: "translateY(-4px)",
@@ -184,33 +186,32 @@ function ManageDormPage() {
                                         },
                                     }}
                                 >
-                                    {/* HÀNG 1: TÊN VÀ NÚT HÀNH ĐỘNG (HEADER CỦA CARD) */}
+                                    {/* Header */}
                                     <Stack
                                         direction="row"
                                         justifyContent="space-between"
                                         alignItems="center"
                                         spacing={1}
                                     >
-                                        {/* Tên Nhà Trọ */}
                                         <Typography variant="h6" fontSize={20} fontWeight={700} sx={{ pr: 1 }}>
                                             {d.name}
                                         </Typography>
 
-                                        {/* Cụm nút Hành động (Quản lý phòng, Sửa, Xóa) */}
-                                        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
+                                        <Box onClick={(e) => e.stopPropagation()}>
                                             <ActionMenu
                                                 d={d}
                                                 navigateToRoomsPage={() => navigate(`/landlord/dorms/${d._id}`)}
                                                 openEditAmenities={openEditAmenities}
                                                 openEditDorm={openEditDorm}
-                                                handleDelete={handleDelete}
+                                                handleDelete={() => handleOpenDeleteConfirmModal(d._id)}
                                             />
-                                        </Stack>
+                                        </Box>
                                     </Stack>
-                                    <Divider /> {/* Đường phân cách mỏng */}
-                                    {/* BỐ CỤC DỌC MỚI CHO THÔNG TIN CHI TIẾT */}
-                                    <Stack spacing={3}>
-                                        {/* 1. Địa chỉ */}
+                                    
+                                    <Divider />
+
+                                    {/* Content */}
+                                    <Stack spacing={2}>
                                         <Stack spacing={0.5}>
                                             <Typography variant="body2" color="text.secondary" fontWeight={500}>
                                                 Địa chỉ
@@ -222,54 +223,40 @@ function ManageDormPage() {
                                                 >
                                                     📍
                                                 </Box>
-                                                <Typography variant="body1">{d.address || "-"}</Typography>
+                                                <Typography variant="body1">{d.address || "Chưa có địa chỉ"}</Typography>
                                             </Stack>
                                         </Stack>
 
-                                        {/* 3. Thông tin Chip (Ngày chốt và Ngày tạo) */}
-                                        <Stack
-                                            direction={{ xs: "column", sm: "row" }} // Xếp ngang trên màn hình lớn, xếp dọc trên màn hình nhỏ
-                                            justifyContent="space-between"
-                                            alignItems={{ xs: "flex-start", sm: "flex-end" }}
-                                            spacing={2}
-                                            sx={{ mt: "auto" }} // ĐẨY XUỐNG DƯỚI CÙNG
-                                        >
-                                            {/* Cột Trái: Thông tin Chip (Ngày chốt và Ngày tạo) */}
-                                            <Stack spacing={0.5}>
-                                                <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                                                    Thông tin ngày
-                                                </Typography>
-                                                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                                        <Stack spacing={0.5}>
+                                            <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                                                Thông tin
+                                            </Typography>
+                                            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                                                <Chip
+                                                    size="small"
+                                                    label={
+                                                        d.involveDueDate
+                                                            ? `Chốt ngày ${d.involveDueDate} hàng tháng`
+                                                            : "Ngày chốt: Chưa đặt"
+                                                    }
+                                                    variant="filled"
+                                                    sx={{ height: 24, fontSize: "0.8rem" }}
+                                                />
+                                                {d.createdAt && (
                                                     <Chip
                                                         size="small"
                                                         label={
-                                                            d.involveDueDate
-                                                                ? `Chốt ngày ${d.involveDueDate} hàng tháng`
-                                                                : "Ngày chốt: Chưa đặt"
+                                                            "Tạo: " +
+                                                            new Date(d.createdAt).toLocaleDateString("vi-VN", {
+                                                                day: "2-digit",
+                                                                month: "2-digit",
+                                                                year: "numeric",
+                                                            })
                                                         }
-                                                        variant="filled"
-                                                        sx={{ width: "fit-content", height: 24, fontSize: "0.8rem" }}
+                                                        variant="outlined"
+                                                        sx={{ height: 24, fontSize: "0.8rem" }}
                                                     />
-                                                    {d.createdAt && (
-                                                        <Chip
-                                                            size="small"
-                                                            label={
-                                                                "Tạo: " +
-                                                                new Date(d.createdAt).toLocaleDateString("vi-VN", {
-                                                                    day: "2-digit",
-                                                                    month: "2-digit",
-                                                                    year: "numeric",
-                                                                })
-                                                            }
-                                                            variant="outlined"
-                                                            sx={{
-                                                                width: "fit-content",
-                                                                height: 24,
-                                                                fontSize: "0.8rem",
-                                                            }}
-                                                        />
-                                                    )}
-                                                </Stack>
+                                                )}
                                             </Stack>
                                         </Stack>
                                     </Stack>

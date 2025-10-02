@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { convexMutation, convexQueryOneTime } from "../../services/convexClient";
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from "@mui/material";
+import { CurrencyTextField } from "../../components/CurrencyTextField";
 
 export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCreated }) {
     const [code, setCode] = useState("");
-    const [price, setPrice] = useState("");
+    const [price, setPrice] = useState(0);
     const [dormName, setDormName] = useState("");
     const [dormLoading, setDormLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -62,7 +63,7 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
             const trimmed = code.trim();
             if (!trimmed) throw new Error("Mã phòng không được để trống.");
 
-            const p = price === "" ? 0 : Number(price);
+            const p = price || 0;
             if (Number.isNaN(p) || p < 0) throw new Error("Giá phòng không hợp lệ.");
 
             setSubmitting(true);
@@ -74,7 +75,7 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
             });
 
             setCode("");
-            setPrice("");
+            setPrice(0);
             onCreated?.();
         } catch (err) {
             const msg = err?.message || "Tạo phòng thất bại.";
@@ -93,7 +94,7 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
         if (submitting) return;
         setError("");
         setCode("");
-        setPrice("");
+        setPrice(0);
         onClose?.();
     };
 
@@ -131,13 +132,11 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
                         fullWidth
                         disabled={submitting}
                     />
-                    <TextField
-                        label="Giá (VND)"
-                        type="number"
+                    <CurrencyTextField
+                        label="Giá phòng (VNĐ)"
                         value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        inputProps={{ min: 0, step: 1000 }}
-                        helperText="Để trống = 0 VND"
+                        onChange={setPrice}
+                        helperText="Để trống = 0 VNĐ"
                         fullWidth
                         disabled={submitting}
                     />

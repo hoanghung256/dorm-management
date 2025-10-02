@@ -17,6 +17,8 @@ import {
     Paper,
     InputAdornment,
     CircularProgress,
+    Switch,
+    FormControlLabel,
 } from '@mui/material';
 import ConfirmModal from '../../components/ConfirmModal';
 import {
@@ -37,34 +39,48 @@ const CreateInvoiceDialog = ({ open, onClose, roomId }) => {
     const [invoiceData, setInvoiceData] = useState({});
     const [roomDetails, setRoomDetails] = useState(null);
     const [roomAmenities, setRoomAmenities] = useState(null);
+    const [amenityToggles, setAmenityToggles] = useState({}); // Track toggle state for amenities
     const [loading, setLoading] = useState(false);
 
     // Confirm modal states
     const [showConfirm, setShowConfirm] = useState(false);
     const [confirmData, setConfirmData] = useState(null);
 
+    // Load data function
+    const loadRoomData = async () => {
+        if (!roomId) return;
+        
+        setLoading(true);
+        try {
+            const [roomData, amenitiesData] = await Promise.all([
+                convexQueryOneTime(api.functions.rooms.getById, { roomId }),
+                convexQueryOneTime(api.functions.rooms.getRoomAmenities, { roomId })
+            ]);
+            setRoomDetails(roomData ? { ...roomData, roomCode: roomData.code } : null);
+            setRoomAmenities(amenitiesData);
+            console.log("Room amenities loaded:", amenitiesData);
+        } catch (error) {
+            console.error("Failed to load room data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Load data when dialog opens
     React.useEffect(() => {
         if (open && roomId) {
-            setLoading(true);
-            Promise.all([
-                convexQueryOneTime(api.functions.rooms.getById, { roomId }),
-                convexQueryOneTime(api.functions.rooms.getRoomAmenities, { roomId })
-            ]).then(([roomData, amenitiesData]) => {
-                setRoomDetails(roomData ? { ...roomData, roomCode: roomData.code } : null);
-                setRoomAmenities(amenitiesData);
-                setLoading(false);
-            }).catch((error) => {
-                console.error("Failed to load room data:", error);
-                setLoading(false);
-            });
+            loadRoomData();
         }
     }, [open, roomId]);
 
     React.useEffect(() => {
         if (roomAmenities && Object.keys(invoiceData).length === 0) {
             const initialData = {};
+            const initialToggles = {};
             roomAmenities.forEach(amenity => {
+                // Initialize toggles from database enabled field, default to true if not set
+                initialToggles[amenity.amenityId] = amenity.enabled !== false; // Default true if undefined/null
+                
                 if (amenity.details?.unitFeeType === 'metered') {
                     initialData[amenity.amenityId] = amenity.lastUsedNumber || 0;
                 } else if (amenity.details?.unitFeeType === 'per_person') {
@@ -74,6 +90,7 @@ const CreateInvoiceDialog = ({ open, onClose, roomId }) => {
             if (Object.keys(initialData).length > 0) {
                 setInvoiceData(initialData);
             }
+            setAmenityToggles(initialToggles);
         }
     }, [roomAmenities, roomDetails, invoiceData]);
 
@@ -120,7 +137,9 @@ const CreateInvoiceDialog = ({ open, onClose, roomId }) => {
             isRoomRent: true // Flag to identify this is room rent
         };
 
-        const amenityCards = roomAmenities?.map(amenity => ({
+        const amenityCards = roomAmenities?.filter(amenity => 
+            amenityToggles[amenity.amenityId] === true // Only include enabled amenities
+        ).map(amenity => ({
             id: amenity.amenityId,
             name: amenity.details?.name || 'Unknown',
             icon: getAmenityIcon(amenity.details?.type),
@@ -146,13 +165,38 @@ const CreateInvoiceDialog = ({ open, onClose, roomId }) => {
 
         // Return room rent first, then amenities
         return roomDetails ? [roomRentCard, ...amenityCards] : amenityCards;
-    }, [roomDetails, roomAmenities, invoiceData]);
+    }, [roomDetails, roomAmenities, invoiceData, amenityToggles]);
 
     const handleInputChange = (amenityId, value) => {
         setInvoiceData(prev => ({
             ...prev,
             [amenityId]: value
         }));
+    };
+
+    // Handle toggle switch for amenities
+    const handleAmenityToggle = async (amenityId, enabled) => {
+        try {
+            // Update local state immediately for UI responsiveness
+            setAmenityToggles(prev => ({
+                ...prev,
+                [amenityId]: enabled
+            }));
+
+            // Save to database
+            await convexMutation(api.functions.amentities.toggleRoomAmenity, {
+                roomId,
+                amenityId,
+                enabled
+            });
+        } catch (error) {
+            console.error("Failed to toggle amenity:", error);
+            // Revert local state on error
+            setAmenityToggles(prev => ({
+                ...prev,
+                [amenityId]: !enabled
+            }));
+        }
     };
 
     // Calculate total amount - INCLUDE ROOM RENT
@@ -183,6 +227,12 @@ const CreateInvoiceDialog = ({ open, onClose, roomId }) => {
     // Handle functions
     const handleTabChange = (event, newValue) => {
         setActiveTab(newValue);
+        
+        // Refresh amenities data when switching to amenities tab
+        if (newValue === 1 && roomId) {
+            console.log("Refreshing amenities data...");
+            loadRoomData();
+        }
     };
 
     const handleReset = () => {
@@ -458,6 +508,238 @@ const CreateInvoiceDialog = ({ open, onClose, roomId }) => {
         </Card>
     );
 
+    // Amenities Management Component
+    const AmenitiesManagement = ({ roomId, roomAmenities, setRoomAmenities }) => {
+        return (
+            <Box>
+                <Typography variant="h6" gutterBottom fontWeight="600" sx={{ mb: 2 }}>
+                    Quản lý cơ sở vật chất
+                </Typography>
+                
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Bật/tắt các tiện nghi để tính vào hóa đơn. Chỉ những tiện nghi được bật mới được tính trong phần tạo hóa đơn.
+                </Typography>
+
+                {(() => {
+                    return roomAmenities && roomAmenities.length > 0;
+                })() ? (
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 2 }}>
+                        {roomAmenities.map((amenity) => (
+                            <Card 
+                                key={amenity.amenityId} 
+                                sx={{ 
+                                    border: '1px solid #e0e0e0',
+                                    opacity: amenityToggles[amenity.amenityId] ? 1 : 0.6,
+                                    transition: 'opacity 0.3s ease'
+                                }}
+                            >
+                                <CardContent>
+                                    {/* Header with toggle */}
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                            <Avatar sx={{ 
+                                                bgcolor: getAmenityColor(amenity.details?.type), 
+                                                width: 40, 
+                                                height: 40,
+                                                fontSize: '1.2rem'
+                                            }}>
+                                                {getAmenityIcon(amenity.details?.type)}
+                                            </Avatar>
+                                            <Box>
+                                                <Typography variant="h6" fontWeight="600" sx={{ mb: 0.5 }}>
+                                                    {amenity.details?.name}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary" sx={{ 
+                                                    textTransform: 'capitalize',
+                                                    backgroundColor: 'grey.100',
+                                                    px: 1,
+                                                    py: 0.5,
+                                                    borderRadius: 1
+                                                }}>
+                                                    {amenity.details?.type === 'electricity' ? 'Điện' :
+                                                     amenity.details?.type === 'water' ? 'Nước' :
+                                                     amenity.details?.type === 'internet' ? 'Internet' :
+                                                     amenity.details?.type === 'garbage' ? 'Rác' :
+                                                     amenity.details?.type === 'elevator' ? 'Thang máy' :
+                                                     amenity.details?.type === 'management' ? 'Quản lý' :
+                                                     'Khác'}
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+                                        
+                                        {/* Toggle Switch */}
+                                        <FormControlLabel
+                                            control={
+                                                <Switch
+                                                    checked={amenityToggles[amenity.amenityId] || false}
+                                                    onChange={(e) => handleAmenityToggle(amenity.amenityId, e.target.checked)}
+                                                    color="primary"
+                                                />
+                                            }
+                                            label=""
+                                            sx={{ m: 0 }}
+                                        />
+                                    </Box>
+                                    
+                                    <Box sx={{ 
+                                        backgroundColor: 'grey.50', 
+                                        borderRadius: 1,
+                                        p: 1.5,
+                                        mb: 1.5
+                                    }}>
+                                        <Typography variant="body2" fontWeight="600" color="primary.main">
+                                            Giá: {amenity.details?.unitPrice?.toLocaleString('vi-VN')} VNĐ
+                                            {amenity.details?.unitFeeType === 'metered' && `/${amenity.details?.unit}`}
+                                            {amenity.details?.unitFeeType === 'per_person' && '/người'}
+                                            {amenity.details?.unitFeeType === 'fixed' && '/tháng'}
+                                        </Typography>
+                                    </Box>
+                                    
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                        <Typography variant="body2" color="primary.main" sx={{ fontWeight: 500 }}>
+                                            {amenity.details?.unitFeeType === 'metered' ? '📊 Theo chỉ số' :
+                                             amenity.details?.unitFeeType === 'per_person' ? '👥 Theo người' : 
+                                             '💰 Giá cố định'}
+                                        </Typography>
+                                        
+                                        {/* Status indicator */}
+                                        <Typography 
+                                            variant="caption" 
+                                            sx={{ 
+                                                backgroundColor: amenityToggles[amenity.amenityId] ? 'success.light' : 'grey.300',
+                                                color: amenityToggles[amenity.amenityId] ? 'success.contrastText' : 'text.secondary',
+                                                px: 1,
+                                                py: 0.5,
+                                                borderRadius: 1,
+                                                fontWeight: 600
+                                            }}
+                                        >
+                                            {amenityToggles[amenity.amenityId] ? '✓ Đang tính phí' : '✗ Không tính phí'}
+                                        </Typography>
+                                    </Box>
+                                        
+                                    {amenity.details?.unitFeeType === 'metered' && amenity.lastUsedNumber !== undefined && (
+                                        <Typography variant="caption" color="text.secondary" sx={{ 
+                                            backgroundColor: 'info.light',
+                                            color: 'info.contrastText',
+                                            px: 1,
+                                            py: 0.5,
+                                            borderRadius: 1,
+                                            display: 'block',
+                                            textAlign: 'center'
+                                        }}>
+                                            Chỉ số cuối: {amenity.lastUsedNumber} {amenity.details?.unit}
+                                        </Typography>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </Box>
+                ) : (
+                    <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'grey.50' }}>
+                        <HomeIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                        <Typography variant="h6" color="text.secondary" gutterBottom>
+                            Chưa có tiện nghi nào
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            Phòng này chưa được cấu hình tiện nghi. Hãy liên hệ quản lý để thêm các tiện nghi cần thiết.
+                        </Typography>
+                    </Paper>
+                )}
+            </Box>
+        );
+    };
+
+    // Renter Management Component
+    const RenterManagement = ({ roomDetails }) => {
+        return (
+            <Box>
+                <Typography variant="h6" gutterBottom fontWeight="600" sx={{ mb: 2 }}>
+                    Thông tin người thuê
+                </Typography>
+                
+                {roomDetails?.renter?.user ? (
+                    <Card>
+                        <CardContent>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                <Avatar sx={{ 
+                                    bgcolor: 'primary.main', 
+                                    width: 64, 
+                                    height: 64,
+                                    fontSize: '1.5rem'
+                                }}>
+                                    {roomDetails.renter.user.name?.charAt(0).toUpperCase() || 'U'}
+                                </Avatar>
+                                <Box>
+                                    <Typography variant="h6" fontWeight="600">
+                                        {roomDetails.renter.user.name || 'Chưa có tên'}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        ID: {roomDetails.renter.user.id}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                            
+                            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
+                                <Box>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        📞 Số điện thoại
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {roomDetails.renter.user.phone || 'Chưa có thông tin'}
+                                    </Typography>
+                                </Box>
+                                
+                                <Box>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        ✉️ Email
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {roomDetails.renter.user.email || 'Chưa có thông tin'}
+                                    </Typography>
+                                </Box>
+                                
+                                <Box>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        📅 Ngày bắt đầu thuê
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {roomDetails.renter.startDate 
+                                            ? new Date(roomDetails.renter.startDate).toLocaleDateString('vi-VN')
+                                            : 'Chưa có thông tin'
+                                        }
+                                    </Typography>
+                                </Box>
+                                
+                                <Box>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        💰 Tiền cọc
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {roomDetails.renter.deposit 
+                                            ? `${roomDetails.renter.deposit.toLocaleString('vi-VN')} VNĐ`
+                                            : 'Chưa có thông tin'
+                                        }
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'grey.50' }}>
+                        <PersonIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                        <Typography variant="h6" color="text.secondary">
+                            Phòng chưa có người thuê
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            Hãy thêm người thuê để quản lý thông tin và tạo hóa đơn
+                        </Typography>
+                    </Paper>
+                )}
+            </Box>
+        );
+    };
+
 
     return (
         <Dialog
@@ -542,27 +824,37 @@ const CreateInvoiceDialog = ({ open, onClose, roomId }) => {
                         <Typography color="text.secondary">Đang tải dữ liệu...</Typography>
                     </Box>
                 ) : (
-                    <TabPanel value={activeTab} index={0}>
-                        <RenterInfo />
+                    <>
+                        <TabPanel value={activeTab} index={0}>
+                            <RenterInfo />
 
-                        <Typography variant="h6" gutterBottom fontWeight="600" sx={{ mb: 1.5 }}>
-                            Tạo hóa đơn hàng tháng
-                        </Typography>
+                            <Typography variant="h6" gutterBottom fontWeight="600" sx={{ mb: 1.5 }}>
+                                Tạo hóa đơn hàng tháng
+                            </Typography>
 
-                        <Box
-                            sx={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(3, 1fr)',
-                                gap: 2,
-                            }}
-                        >
-                            {amenities.map((amenity) => (
-                                <Box key={amenity.id} sx={{ display: 'flex' }}>
-                                    <AmenityCard amenity={amenity} />
-                                </Box>
-                            ))}
-                        </Box>
-                    </TabPanel>
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(3, 1fr)',
+                                    gap: 2,
+                                }}
+                            >
+                                {amenities.map((amenity) => (
+                                    <Box key={amenity.id} sx={{ display: 'flex' }}>
+                                        <AmenityCard amenity={amenity} />
+                                    </Box>
+                                ))}
+                            </Box>
+                        </TabPanel>
+
+                        <TabPanel value={activeTab} index={1}>
+                            <AmenitiesManagement roomId={roomId} roomAmenities={roomAmenities} setRoomAmenities={setRoomAmenities} />
+                        </TabPanel>
+
+                        <TabPanel value={activeTab} index={2}>
+                            <RenterManagement roomDetails={roomDetails} />
+                        </TabPanel>
+                    </>
                 )}
             </DialogContent>
 
