@@ -55,6 +55,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import PersonOffIcon from "@mui/icons-material/PersonOff";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import { CardHeader } from "@mui/material";
+import toast from "react-hot-toast";
 
 // Add onDialogClose prop to component declaration
 const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
@@ -95,45 +96,7 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
     React.useEffect(() => {
         if (open && roomId) {
             setLoading(true);
-            Promise.all([
-                convexQueryOneTime(api.functions.rooms.getById, { roomId }),
-                convexQueryOneTime(api.functions.rooms.getRoomAmenities, { roomId }),
-                convexQueryOneTime(api.functions.rooms.getRentersByRoomId, { roomId }),
-            ])
-                .then(([roomData, amenitiesData, rentersData]) => {
-                    setRoomDetails(roomData ? { ...roomData, roomCode: roomData.code } : null);
-                    setRoomAmenities(amenitiesData);
-
-                    const representativeEmail = roomData?.renter?.user?.email || null;
-
-                    // Gắn cờ isRepresentative bằng email
-                    let mergedRenters = (rentersData || []).map((r) => ({
-                        ...r,
-                        isRepresentative: representativeEmail && r.email === representativeEmail,
-                    }));
-
-                    // Nếu đại diện chưa có trong danh sách renters → push thêm
-                    if (representativeEmail && !mergedRenters.some((r) => r.email === representativeEmail)) {
-                        mergedRenters.push({
-                            ...roomData.renter.user,
-                            isRepresentative: true,
-                        });
-                    }
-
-                    // ✅ Sort: đại diện đứng đầu tiên
-                    mergedRenters.sort((a, b) => {
-                        if (a.isRepresentative && !b.isRepresentative) return -1;
-                        if (!a.isRepresentative && b.isRepresentative) return 1;
-                        return 0;
-                    });
-
-                    setRenters(mergedRenters);
-                    setLoading(false);
-                })
-                .catch((error) => {
-                    console.error("Failed to load data:", error);
-                    setLoading(false);
-                });
+            getRoomDetailsAndAmenities();
         }
     }, [open, roomId]);
 
@@ -152,6 +115,48 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
             }
         }
     }, [roomAmenities, roomDetails, invoiceData]);
+
+    const getRoomDetailsAndAmenities = async () => {
+        Promise.all([
+            convexQueryOneTime(api.functions.rooms.getById, { roomId }),
+            convexQueryOneTime(api.functions.rooms.getRoomAmenities, { roomId }),
+            convexQueryOneTime(api.functions.rooms.getRentersByRoomId, { roomId }),
+        ])
+            .then(([roomData, amenitiesData, rentersData]) => {
+                setRoomDetails(roomData ? { ...roomData, roomCode: roomData.code } : null);
+                setRoomAmenities(amenitiesData);
+
+                const representativeEmail = roomData?.renter?.user?.email || null;
+
+                // Gắn cờ isRepresentative bằng email
+                let mergedRenters = (rentersData || []).map((r) => ({
+                    ...r,
+                    isRepresentative: representativeEmail && r.email === representativeEmail,
+                }));
+
+                // Nếu đại diện chưa có trong danh sách renters → push thêm
+                if (representativeEmail && !mergedRenters.some((r) => r.email === representativeEmail)) {
+                    mergedRenters.push({
+                        ...roomData.renter.user,
+                        isRepresentative: true,
+                    });
+                }
+
+                // ✅ Sort: đại diện đứng đầu tiên
+                mergedRenters.sort((a, b) => {
+                    if (a.isRepresentative && !b.isRepresentative) return -1;
+                    if (!a.isRepresentative && b.isRepresentative) return 1;
+                    return 0;
+                });
+
+                setRenters(mergedRenters);
+                setLoading(false);
+            })
+            .catch((error) => {
+                console.error("Failed to load data:", error);
+                setLoading(false);
+            });
+    };
 
     // Icon mapping
     const getAmenityIcon = (type) => {
@@ -367,11 +372,11 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
 
             // Handle duplicate invoice error specifically
             if (error.message.includes("Invoice already exists")) {
-                alert(
+                toast.error(
                     `⚠️ Hóa đơn đã tồn tại!\n\n${error.message}\n\nVui lòng kiểm tra danh sách hóa đơn hoặc chọn tháng khác.`,
                 );
             } else {
-                alert(`Lỗi tạo hóa đơn: ${error.message}`);
+                toast.error(`Lỗi tạo hóa đơn: ${error.message}`);
             }
         }
     };
@@ -426,10 +431,11 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
             setRenters(rentersList);
             setSelectedRenter(null);
             setShowDeleteConfirm(false);
-            alert("✅ Đã xóa thành công!");
+            toast.success("Đã xóa thành công!");
+            getRoomDetailsAndAmenities();
         } catch (error) {
             console.error("Error removing renter:", error);
-            alert("❌ Lỗi khi xóa người thuê");
+            toast.error("Lỗi khi xóa người thuê");
         }
     };
 
@@ -517,7 +523,7 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                 const results = await convexQueryOneTime(api.functions.renters.searchRenters, { searchTerm });
                 setSearchResults(Array.isArray(results) ? results : []);
             } catch (error) {
-                -console.error("Error searching users:", error);
+                console.error("Error searching users:", error);
                 setSearchResults([]);
             } finally {
                 setIsSearching(false);
@@ -547,10 +553,11 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
             handleSearchDialogClose();
 
             // Show success message
-            alert("✅ Đã thêm và cập nhật người đại diện thành công!");
+            getRoomDetailsAndAmenities();
+            toast.success("Đã thêm và cập nhật người đại diện thành công!");
         } catch (error) {
             console.error("Error assigning representative:", error);
-            alert("❌ Lỗi: " + (error.message || "Không thể thêm người đại diện"));
+            toast.error("❌ Lỗi: " + (error.message || "Không thể thêm người đại diện"));
         }
     };
 
@@ -797,11 +804,11 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                 hometown: "",
             });
             handleCloseAddRenterDialog();
-
-            alert("✅ Đã thêm người thuê thành công!");
+            getRoomDetailsAndAmenities();
+            toast.success("Đã thêm người thuê thành công!");
         } catch (error) {
             console.error("Error adding renter:", error);
-            alert("❌ Lỗi khi thêm người thuê");
+            toast.error("Lỗi khi thêm người thuê");
         }
     };
 
@@ -1100,23 +1107,34 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                     gap: 1,
                 }}
             >
-                <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <Typography variant="h6" color="primary.main" fontWeight="600">
-                        Tổng cộng: {calculateTotal().toLocaleString("vi-VN")} đ
-                    </Typography>
-                </Box>
+                {activeTab === 0 && (
+                    <>
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                            <Typography variant="h6" color="primary.main" fontWeight="600">
+                                Tổng cộng: {calculateTotal().toLocaleString("vi-VN")} đ
+                            </Typography>
+                        </Box>
+                    </>
+                )}
 
-                <Box sx={{ display: "flex", gap: 1 }}>
-                    <Button variant="outlined" onClick={handleReset} color="inherit" sx={{ minWidth: 100 }}>
-                        Đặt lại
-                    </Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleCreateInvoice}
-                        disabled={!roomDetails?.renter || amenities.length === 0}
-                        sx={{ minWidth: 120 }}
-                    >
-                        Tạo hóa đơn
+                <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", flex: 1 }}>
+                    {activeTab === 0 && (
+                        <>
+                            <Button variant="outlined" onClick={handleReset} color="inherit" sx={{ minWidth: 100 }}>
+                                Đặt lại
+                            </Button>
+                            <Button
+                                variant="contained"
+                                onClick={handleCreateInvoice}
+                                disabled={!roomDetails?.renter || amenities.length === 0}
+                                sx={{ minWidth: 120 }}
+                            >
+                                Tạo hóa đơn
+                            </Button>
+                        </>
+                    )}
+                    <Button variant="outlined" onClick={handleClose} color="inherit" sx={{ minWidth: 100 }}>
+                        Đóng
                     </Button>
                 </Box>
             </DialogActions>
