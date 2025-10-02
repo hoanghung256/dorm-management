@@ -1,12 +1,7 @@
-import { useState, useMemo, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import {
     Box,
     Button,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField,
     Typography,
     IconButton,
     Stack,
@@ -22,13 +17,12 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import BuildIcon from "@mui/icons-material/Build";
-import HomeIcon from "@mui/icons-material/Home";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
-import { useNavigate } from "react-router-dom"; // Add Button
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { useNavigate } from "react-router-dom";
 import { api } from "../../../convex/_generated/api";
 import useConvexUserData from "../../hooks/useConvexUserData";
 import { convexMutation, convexQueryOneTime } from "../../services/convexClient";
@@ -38,11 +32,10 @@ import ConfirmModal from "../../components/ConfirmModal";
 
 function ManageDormPage() {
     const user = useConvexUserData();
-    const navigate = useNavigate(); // Add Button
+    const navigate = useNavigate();
 
-    const [pageData, setPageData] = useState({ items: [], page: 1, pageSize: 5, total: 0, totalPages: 0 });
+    const [pageData, setPageData] = useState({ items: [], page: 1, pageSize: 10, total: 0, totalPages: 0 });
     const [isShowEditDormModal, setIsShowEditDormModal] = useState(false);
-    // const [searchTerm, setSearchTerm] = useState("");
     const [editDormId, setEditDormId] = useState(null);
     const [isShowEditAmenitesModal, setIsShowEditAmenitesModal] = useState(false);
     const [editAmenities, setEditAmenities] = useState([]);
@@ -148,8 +141,7 @@ function ManageDormPage() {
                         </Button>
                     </Stack>
                 </Stack>
-
-                {pageData?.items.length === 0 && user?.detail?._id && (
+                {pageData.items.length === 0 && user?.detail?._id && (
                     <Typography variant="body2" sx={{ py: 2 }}>
                         Chưa có trọ nào.
                     </Typography>
@@ -167,7 +159,7 @@ function ManageDormPage() {
                                     elevation={4}
                                     onClick={() => navigate(`/landlord/dorms/${d._id}`)}
                                     sx={{
-                                        p: 3,
+                                        p: 2.5,
                                         display: "flex",
                                         flexDirection: "column",
                                         gap: 2,
@@ -180,9 +172,10 @@ function ManageDormPage() {
                                         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
                                         cursor: "pointer",
                                         transition: "transform 0.2s, box-shadow 0.2s",
+                                        background: "linear-gradient(180deg,#ffffff 0%,#f9f6fc 100%)",
                                         "&:hover": {
-                                            transform: "translateY(-4px)",
-                                            boxShadow: "0 8px 16px rgba(0, 0, 0, 0.2)",
+                                            transform: "translateY(-3px)",
+                                            boxShadow: "0 8px 18px rgba(0,0,0,0.18)",
                                         },
                                     }}
                                 >
@@ -265,15 +258,6 @@ function ManageDormPage() {
                         ))}
                     </Grid>
                 </Box>
-
-                {/* {nextCursor && (
-                <Box mt={3} textAlign="center">
-                    <Button onClick={handleLoadMore} variant="outlined">
-                        Tải thêm
-                    </Button>
-                </Box>
-            )} */}
-
                 <Divider sx={{ mt: 4 }} />
             </Box>
         </>
@@ -283,14 +267,8 @@ function ManageDormPage() {
 function ActionMenu({ d, openEditAmenities, openEditDorm, handleDelete, navigateToRoomsPage }) {
     const [anchorEl, setAnchorEl] = useState(null);
     const open = Boolean(anchorEl);
-
-    const handleClick = (event) => {
-        setAnchorEl(event.currentTarget);
-    };
-    const handleClose = () => {
-        setAnchorEl(null);
-    };
-
+    const handleClick = (e) => setAnchorEl(e.currentTarget);
+    const handleClose = () => setAnchorEl(null);
     return (
         <>
             <Tooltip title="Tùy chọn">
@@ -309,17 +287,19 @@ function ActionMenu({ d, openEditAmenities, openEditDorm, handleDelete, navigate
                 anchorEl={anchorEl}
                 open={open}
                 onClose={handleClose}
-                PaperProps={{
-                    sx: { minWidth: 160 },
-                }}
+                PaperProps={{ sx: { minWidth: 160 } }}
             >
-                <MenuItem onClick={navigateToRoomsPage}>
+                <MenuItem
+                    onClick={() => {
+                        navigateToRoomsPage();
+                        handleClose();
+                    }}
+                >
                     <ListItemIcon>
                         <MeetingRoomIcon fontSize="small" />
                     </ListItemIcon>
                     <ListItemText primary="Quản lý phòng" />
                 </MenuItem>
-
                 <MenuItem
                     onClick={() => {
                         openEditAmenities(d._id, d.amenities);
@@ -331,7 +311,6 @@ function ActionMenu({ d, openEditAmenities, openEditDorm, handleDelete, navigate
                     </ListItemIcon>
                     <ListItemText primary="Sửa vật tư" />
                 </MenuItem>
-
                 <MenuItem
                     onClick={() => {
                         openEditDorm(d);
@@ -343,7 +322,6 @@ function ActionMenu({ d, openEditAmenities, openEditDorm, handleDelete, navigate
                     </ListItemIcon>
                     <ListItemText primary="Sửa thông tin trọ" />
                 </MenuItem>
-
                 <MenuItem
                     onClick={() => {
                         handleDelete(d);

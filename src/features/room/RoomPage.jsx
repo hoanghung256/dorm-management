@@ -418,7 +418,7 @@ export default function RoomPage() {
                             <Typography align="center" color="text.secondary" sx={{ fontStyle: "italic" }}>
                                 {rooms.length === 0 ? "Chưa có phòng nào" : "Không tìm thấy phòng phù hợp"}
                             </Typography>
-                            {rooms.length === 0 && !loading && (
+                            {/* {rooms.length === 0 && !loading && (
                                 <Box sx={{ textAlign: "center", mt: 2 }}>
                                     <Button
                                         variant="contained"
@@ -437,7 +437,7 @@ export default function RoomPage() {
                                         Thêm phòng
                                     </Button>
                                 </Box>
-                            )}
+                            )} */}
                         </Grid>
                     ) : (
                         filteredRooms.map((roomItem) => {

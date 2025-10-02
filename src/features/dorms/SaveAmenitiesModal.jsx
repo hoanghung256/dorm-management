@@ -16,13 +16,32 @@ import {
     IconButton,
     Chip
 } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import BoltIcon from "@mui/icons-material/Bolt";
+import OpacityIcon from "@mui/icons-material/Opacity"; // water
+import WifiIcon from "@mui/icons-material/Wifi";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline"; // trash service
+import ElevatorIcon from "@mui/icons-material/Elevator";
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { convexMutation } from "../../services/convexClient";
 import { api } from "../../../convex/_generated/api";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 
+// Clean component implementing 'Chọn loại' placeholder
 function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh }) {
     const [amenities, setAmenities] = useState([]);
+
+    const TYPE_OPTIONS = [
+        { value: "điện", label: "Điện", icon: <BoltIcon fontSize="small" color="warning" /> },
+        { value: "nước", label: "Nước", icon: <OpacityIcon fontSize="small" color="primary" /> },
+        { value: "internet", label: "Internet", icon: <WifiIcon fontSize="small" color="action" /> },
+        { value: "rác", label: "Rác", icon: <DeleteOutlineIcon fontSize="small" color="error" /> },
+        { value: "thang máy", label: "Thang máy", icon: <ElevatorIcon fontSize="small" color="action" /> },
+        { value: "quản lý", label: "Quản lý", icon: <ManageAccountsIcon fontSize="small" color="action" /> },
+        { value: "khác", label: "Khác", icon: <MoreHorizIcon fontSize="small" color="disabled" /> },
+    ];
 
     useEffect(() => {
         setAmenities(existingAmenities || []);
@@ -78,9 +97,7 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
     };
 
     const handleChange = (index, field, value) => {
-        const copy = [...amenities];
-        copy[index][field] = value;
-        setAmenities(copy);
+        setAmenities((prev) => prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)));
     };
 
     const handlePriceChange = (index, value) => {
@@ -103,20 +120,15 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
         }]);
     };
 
-    const save = async () => {
-        if (!dormId || !amenities) return;
-        await convexMutation(api.functions.amentities.updateDormAmenities, {
-            dormId,
-            amenities,
-        });
-        onClose();
-        refresh();
+    const remove = (index) => {
+        setAmenities((prev) => prev.filter((_, i) => i !== index));
     };
 
-    const remove = (index) => {
-        const copy = [...amenities];
-        copy.splice(index, 1);
-        setAmenities(copy);
+    const save = async () => {
+        if (!dormId) return;
+        await convexMutation(api.functions.amentities.updateDormAmenities, { dormId, amenities });
+        onClose?.();
+        refresh?.();
     };
 
     return (
