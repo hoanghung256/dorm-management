@@ -138,13 +138,19 @@ export const createAndAssign = mutation({
     },
 });
 
-export const assignToRoom = mutation({
-    args: { renterId: v.id("renters"), roomId: v.id("rooms") },
-    handler: async (ctx, { renterId, roomId }) => {
-        const renter = await ctx.db.get(renterId);
-        if (!renter) throw new Error("Renter not found");
+export const assignSpenderToRoom = mutation({
+    args: { userId: v.id("users"), roomId: v.id("rooms") },
+    handler: async (ctx, { userId, roomId }) => {
+        const user = await ctx.db.get(userId);
+        if (!user) throw new Error("User not found");
         const room = await ctx.db.get(roomId);
         if (!room) throw new Error("Room not found");
+        const renter = await ctx.db
+            .query("renters")
+            .filter((q) => q.eq(q.field("userId"), userId))
+            .first();
+        if (!renter) throw new Error("Renter not found");
+        const renterId = renter._id;
 
         // Clear previous room if any
         if (renter.assignedRoomId) {
@@ -167,20 +173,28 @@ export const assignToRoom = mutation({
 });
 
 export const unassignFromRoom = mutation({
-    args: { renterId: v.id("renters") },
-    handler: async (ctx, { renterId }) => {
-        const renter = await ctx.db.get(renterId);
+    args: { userId: v.id("users"), roomId: v.id("rooms") },
+    handler: async (ctx, { userId, roomId }) => {
+        const user = await ctx.db.get(userId);
+        if (!user) throw new Error("User not found");
+        const room = await ctx.db.get(roomId);
+        if (!room) throw new Error("Room not found");
+        const renter = await ctx.db
+            .query("renters")
+            .filter((q) => q.eq(q.field("userId"), userId))
+            .first();
         if (!renter) throw new Error("Renter not found");
-        if (renter.assignedRoomId) {
-            const room = await ctx.db.get(renter.assignedRoomId);
-            if (room && room.currentRenterId === renterId) {
-                await ctx.db.patch(room._id, {
-                    currentRenterId: undefined,
-                    status: room.status === "occupied" ? "vacant" : room.status,
-                });
-            }
+        const renterId = renter._id;
+        if (renter.assignedRoomId !== roomId) {
+            throw new Error("Renter is not assigned to this room");
         }
-        await ctx.db.patch(renterId, { assignedRoomId: undefined });
+        await ctx.db.patch(roomId, {
+            currentRenterId: undefined,
+            status: "vacant",
+        });
+        await ctx.db.patch(renterId, {
+            assignedRoomId: undefined,
+        });
         return { ok: true };
     },
 });
@@ -193,7 +207,6 @@ export const update = mutation({
     handler: async (ctx, { renterId, active }) => {
         const renter = await ctx.db.get(renterId);
         if (!renter) throw new Error("Renter not found");
-
         const patch = {};
         if (typeof active === "boolean") patch.active = active;
 
@@ -212,5 +225,35 @@ export const remove = mutation({
         }
         await ctx.db.delete(renterId);
         return { ok: true };
+    },
+});
+
+export const searchRenters = query({
+    args: {
+        searchTerm: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const { searchTerm } = args;
+
+        try {
+            const renters = await ctx.db
+                .query("users")
+                .filter((q) => q.eq(q.field("role"), "renter"))
+                .collect();
+
+            if (!searchTerm) return [];
+            const matchedUsers = renters.filter((u) => u.email === searchTerm || u.phone === searchTerm);
+            return matchedUsers.map((user) => ({
+                _id: user._id,
+                name: user.name || "",
+                email: user.email || "",
+                phone: user.phone || "",
+                birthDate: user.birthDate,
+                hometown: user.hometown,
+            }));
+        } catch (error) {
+            console.error("Search error:", error);
+            return [];
+        }
     },
 });

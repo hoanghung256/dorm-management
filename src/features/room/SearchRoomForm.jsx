@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Box, TextField, InputAdornment, Button, Menu, MenuItem } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
+import { Search as SearchIcon, FilterList as FilterIcon } from "@mui/icons-material";
 
 /**
  * SearchRoomForm
@@ -55,9 +55,16 @@ export default function SearchRoomForm({ search = "", status = "all", onSearchCh
             <Button
                 variant="outlined"
                 onClick={handleOpenMenu}
-                sx={{ whiteSpace: "nowrap", justifySelf: { sm: "end" } }}
+                startIcon={<FilterIcon />}
+                size="small"
+                sx={{ 
+                    whiteSpace: "nowrap", 
+                    justifySelf: { sm: "end" },
+                    minWidth: "auto",
+                    px: 2
+                }}
             >
-                {statusLabel}
+                Lọc
             </Button>
             <Menu
                 anchorEl={anchorEl}

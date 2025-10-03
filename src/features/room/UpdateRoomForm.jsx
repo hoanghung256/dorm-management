@@ -12,10 +12,11 @@ import {
     Typography,
     MenuItem,
 } from "@mui/material";
+import { CurrencyTextField } from "../../components/CurrencyTextField";
 
 export default function UpdateRoomForm({ open, onClose, landlordId, dormId, roomId, roomData, onUpdate }) {
     const [code, setCode] = useState("");
-    const [price, setPrice] = useState("");
+    const [price, setPrice] = useState(0);
     const [status, setStatus] = useState("vacant");
     const [dormName, setDormName] = useState("");
     const [currentRenterId, setCurrentRenterId] = useState("");
@@ -36,7 +37,7 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
 
         // Populate form with existing room data
         setCode(roomData.code || "");
-        setPrice(roomData.price ? roomData.price.toString() : "");
+        setPrice(roomData.price || 0);
         setStatus(roomData.status || statusOptions[0].value);
         setCurrentRenterId(roomData.currentRenterId || "");
 
@@ -129,7 +130,7 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
             const trimmed = code.trim();
             if (!trimmed) throw new Error("Mã phòng không được để trống.");
 
-            const p = price === "" ? 0 : Number(price);
+            const p = price || 0;
             if (Number.isNaN(p) || p < 0) throw new Error("Giá phòng không hợp lệ.");
 
             // Check if trying to set status to 'vacant' while there's a renter
@@ -237,14 +238,12 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
                         fullWidth
                         placeholder="Nhập mã phòng"
                     />
-                    <TextField
-                        label="Giá phòng (VND)"
+                    <CurrencyTextField
+                        label="Giá phòng (VNĐ)"
                         value={price}
-                        onChange={(e) => setPrice(e.target.value)}
+                        onChange={setPrice}
                         error={error === "price"}
-                        helperText={error === "price" && "Giá phòng không hợp lệ"}
-                        type="number"
-                        inputProps={{ min: 0 }}
+                        helperText={error === "price" ? "Giá phòng không hợp lệ" : ""}
                         placeholder="Nhập giá phòng"
                         fullWidth
                     />

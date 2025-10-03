@@ -57,6 +57,9 @@ const LandingPage = () => {
                             Bắt đầu ngay
                             <span></span>
                         </a>
+                        <a href="/product" className="homepage-button-secondary">
+                            Xem tính năng
+                        </a>
                         <a href="#about" className="homepage-button-secondary">
                             Tìm hiểu thêm
                         </a>

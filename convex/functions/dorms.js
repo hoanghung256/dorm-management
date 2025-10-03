@@ -116,35 +116,57 @@ export const saveDorm = mutation({
 });
 
 /**
- * Delete dorm; optionally cascade amenities.
+ * Delete dorm with cascade deletion of all related data.
  */
 export const deleteDorm = mutation({
     args: {
         dormId: v.id("dorms"),
-        force: v.optional(v.boolean()), // if true, delete related amenities
     },
-    handler: async (ctx, { dormId, force }) => {
+    handler: async (ctx, { dormId }) => {
         const dorm = await ctx.db.get(dormId);
         if (!dorm) throw new Error("Không tìm thấy trọ");
 
-        // Check amenities referencing dorm
+        // Get all rooms in this dorm
+        const rooms = await ctx.db
+            .query("rooms")
+            .withIndex("by_dorm", (q) => q.eq("dormId", dormId))
+            .collect();
+
+        // Delete all roomAmenities for rooms in this dorm
+        for (const room of rooms) {
+            const roomAmenities = await ctx.db
+                .query("roomAmenities")
+                .withIndex("by_room", (q) => q.eq("roomId", room._id))
+                .collect();
+            
+            for (const roomAmenity of roomAmenities) {
+                await ctx.db.delete(roomAmenity._id);
+            }
+        }
+
+        // Delete all rooms in this dorm
+        for (const room of rooms) {
+            await ctx.db.delete(room._id);
+        }
+
+        // Delete all amenities in this dorm
         const amenities = await ctx.db
             .query("amenities")
             .withIndex("by_dorm", (q) => q.eq("dormId", dormId))
             .collect();
 
-        if (amenities.length > 0 && !force) {
-            throw new Error("Trọ có tiện ích; cần force=true để xóa");
+        for (const amenity of amenities) {
+            await ctx.db.delete(amenity._id);
         }
 
-        if (force && amenities.length > 0) {
-            for (const a of amenities) {
-                await ctx.db.delete(a._id);
-            }
-        }
-
+        // Finally delete the dorm itself
         await ctx.db.delete(dormId);
-        return { deleted: true };
+        
+        return { 
+            deleted: true, 
+            roomsDeleted: rooms.length,
+            amenitiesDeleted: amenities.length
+        };
     },
 });
 
