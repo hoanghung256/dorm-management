@@ -23,13 +23,67 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
     const [dormLoading, setDormLoading] = useState(false);
     const [rentersLoading, setRentersLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState("");
+    const [errors, setErrors] = useState({});
 
     const statusOptions = [
         { value: "vacant", label: "Trống" },
         { value: "occupied", label: "Đang sử dụng" },
         { value: "maintenance", label: "Đang sửa" },
     ];
+
+    // Validation functions
+    const validateCode = (value) => {
+        const trimmed = value.trim();
+        if (!trimmed) return "Mã phòng không được để trống";
+        if (trimmed.length < 1) return "Mã phòng phải có ít nhất 1 ký tự";
+        if (trimmed.length > 20) return "Mã phòng không được quá 20 ký tự";
+        if (!/^[a-zA-Z0-9\-_\s]+$/.test(trimmed)) return "Mã phòng chỉ được chứa chữ, số, dấu gạch ngang, gạch dưới và khoảng trắng";
+        return null;
+    };
+
+    const validatePrice = (value) => {
+        if (value === "") return "Giá phòng không được để trống";
+
+        const numValue = Number(value);
+        if (isNaN(numValue)) return "Giá phòng phải là số";
+        if (numValue < 0) return "Giá phòng không được âm";
+        if (numValue > 100000000) return "Giá phòng không được vượt quá 100 triệu VND";
+        if (!Number.isInteger(numValue)) return "Giá phòng phải là số nguyên";
+
+        return null;
+    };
+
+    // Real-time validation handlers
+    const handleCodeChange = (e) => {
+        const value = e.target.value;
+        setCode(value);
+
+        const error = validateCode(value);
+        setErrors(prev => ({
+            ...prev,
+            code: error
+        }));
+    };
+
+    const handlePriceChange = (e) => {
+        let value = e.target.value;
+
+        // Only allow digits
+        value = value.replace(/[^0-9]/g, '');
+
+        setPrice(value);
+
+        const error = validatePrice(value);
+        setErrors(prev => ({
+            ...prev,
+            price: error
+        }));
+    };
+
+    const formatPrice = (value) => {
+        if (!value) return "";
+        return new Intl.NumberFormat('vi-VN').format(value);
+    };
 
     useEffect(() => {
         if (!open || !roomData) return;
@@ -100,9 +154,15 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
                 if (!cancelled) {
                     const msg = e?.message || "";
                     if (msg.includes("Failed to fetch") || msg.includes("TypeError")) {
-                        setError("Không thể kết nối máy chủ. Hãy chạy `npx convex dev` và kiểm tra VITE_CONVEX_URL.");
+                        setErrors(prev => ({
+                            ...prev,
+                            general: "Không thể kết nối máy chủ. Hãy chạy `npx convex dev` và kiểm tra VITE_CONVEX_URL."
+                        }));
                     } else {
-                        setError(msg || "Tải dữ liệu thất bại.");
+                        setErrors(prev => ({
+                            ...prev,
+                            general: msg || "Tải dữ liệu thất bại."
+                        }));
                     }
                     console.error("Load data failed:", e);
                 }
@@ -122,47 +182,58 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (submitting) return;
-        setError("");
+
+        // Validate all fields
+        const codeError = validateCode(code);
+        const priceError = validatePrice(price);
+
+        const newErrors = {
+            code: codeError,
+            price: priceError,
+        };
+
+        setErrors(newErrors);
+
+        // Check if there are any errors
+        const hasErrors = Object.values(newErrors).some(error => error !== null);
+        if (hasErrors) {
+            return;
+        }
 
         try {
-            // if (!landlordId) throw new Error("Thiếu landlordId.");
             const trimmed = code.trim();
-            if (!trimmed) throw new Error("Mã phòng không được để trống.");
-
-            const p = price === "" ? 0 : Number(price);
-            if (Number.isNaN(p) || p < 0) throw new Error("Giá phòng không hợp lệ.");
-
-            // Check if trying to set status to 'vacant' while there's a renter
-            const hasCurrentRenter = currentRenterId || roomData?.currentRenterId;
-            if (status === "vacant" && hasCurrentRenter) {
-                throw new Error(
-                    "Không thể chuyển trạng thái thành 'Trống' khi phòng vẫn còn người thuê. Vui lòng xóa người thuê trước.",
-                );
-            }
-
-            // If no renter selected, ensure status becomes 'vacant'
+            const numPrice = Number(price);
             const statusToSave = currentRenterId ? status : "vacant";
 
             setSubmitting(true);
             await convexMutation(api.functions.rooms.update, {
                 roomId,
                 code: trimmed,
-                price: p,
+                price: numPrice,
                 status: statusToSave,
                 currentRenterId: currentRenterId || undefined,
             });
 
+            // Clear form and close
             setCode("");
             setPrice("");
+            setErrors({});
             onUpdate?.();
+            onClose?.();
         } catch (err) {
             const msg = err?.message || "Cập nhật phòng thất bại.";
             if (msg.includes("Failed to fetch")) {
-                setError("Không thể kết nối máy chủ. Hãy chạy `npx convex dev` và kiểm tra VITE_CONVEX_URL.");
+                setErrors(prev => ({
+                    ...prev,
+                    general: "Không thể kết nối máy chủ. Hãy chạy `npx convex dev` và kiểm tra VITE_CONVEX_URL."
+                }));
             } else {
-                setError(msg);
+                setErrors(prev => ({
+                    ...prev,
+                    general: msg
+                }));
             }
-            console.error("Create room failed:", err);
+            console.error("Update room failed:", err);
         } finally {
             setSubmitting(false);
         }
@@ -170,13 +241,21 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
 
     const handleClose = () => {
         if (submitting) return;
-        setError("");
+        setErrors({});
         onClose?.();
         setCode("");
         setPrice("");
         setStatus(statusOptions[0].value);
         setCurrentRenterId("");
         setAvailableRenters([]);
+    };
+
+    // Check if form is valid
+    const isFormValid = () => {
+        return !validateCode(code) &&
+            !validatePrice(price) &&
+            code.trim() !== "" &&
+            price !== "";
     };
 
     return (
@@ -205,7 +284,7 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
                 Cập nhật thông tin phòng
             </DialogTitle>
             <DialogContent sx={{ pt: 2, pb: 1 }}>
-                {error && (
+                {errors.general && (
                     <Typography
                         variant="body2"
                         color="error"
@@ -217,7 +296,7 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
                             border: "1px solid #ffcdd2",
                         }}
                     >
-                        {error}
+                        {errors.general}
                     </Typography>
                 )}
                 <Stack spacing={2.5}>
@@ -231,22 +310,28 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
                     <TextField
                         label="Mã phòng"
                         value={code}
-                        onChange={(e) => setCode(e.target.value)}
-                        error={error === "code"}
-                        helperText={error === "code" && "Mã phòng không hợp lệ"}
+                        onChange={handleCodeChange}
+                        error={!!errors.code}
+                        helperText={errors.code || "Nhập mã phòng (chỉ chữ, số, dấu gạch)"}
                         fullWidth
-                        placeholder="Nhập mã phòng"
+                        placeholder="Ví dụ: A101, P-201, Phòng 301"
+                        inputProps={{ maxLength: 20 }}
                     />
                     <TextField
                         label="Giá phòng (VND)"
                         value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        error={error === "price"}
-                        helperText={error === "price" && "Giá phòng không hợp lệ"}
-                        type="number"
-                        inputProps={{ min: 0 }}
-                        placeholder="Nhập giá phòng"
+                        onChange={handlePriceChange}
+                        error={!!errors.price}
+                        helperText={
+                            errors.price ||
+                            (price && !errors.price ? `${formatPrice(price)} VND` : "Nhập giá phòng bằng số")
+                        }
+                        placeholder="Ví dụ: 2500000"
                         fullWidth
+                        inputProps={{
+                            inputMode: 'numeric',
+                            pattern: '[0-9]*'
+                        }}
                     />
                     <TextField
                         select
@@ -254,14 +339,15 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
                         value={status}
                         onChange={(e) => {
                             const next = e.target.value;
-                            setError("");
+                            setErrors(prev => ({ ...prev, status: null }));
 
                             // Check if trying to set status to 'vacant' while there's a current renter
                             const hasCurrentRenter = currentRenterId || roomData?.currentRenterId;
                             if (next === "vacant" && hasCurrentRenter) {
-                                setError(
-                                    "Không thể chuyển trạng thái thành 'Trống' khi phòng vẫn còn người thuê. Vui lòng xóa người thuê trước.",
-                                );
+                                setErrors(prev => ({
+                                    ...prev,
+                                    status: "Không thể chuyển trạng thái thành 'Trống' khi phòng vẫn còn người thuê. Vui lòng xóa người thuê trước."
+                                }));
                                 return;
                             }
 
@@ -339,8 +425,8 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
                             rentersLoading
                                 ? "Đang tải danh sách người thuê..."
                                 : availableRenters.length === 0
-                                  ? "Không có người thuê trong phòng này"
-                                  : "Chọn người thuê cho phòng này"
+                                    ? "Không có người thuê trong phòng này"
+                                    : "Chọn người thuê cho phòng này"
                         }
                         MenuProps={{
                             disablePortal: true,
@@ -416,7 +502,7 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
                 </Button>
                 <Button
                     onClick={handleSubmit}
-                    disabled={submitting}
+                    disabled={submitting || !isFormValid()}
                     variant="contained"
                     sx={{
                         textTransform: "none",
