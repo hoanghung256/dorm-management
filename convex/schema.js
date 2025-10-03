@@ -62,6 +62,17 @@ export default defineSchema({
         dormId: v.id("dorms"),
         landlordId: v.id("landlords"),
         currentRenterId: v.optional(v.id("renters")),
+        renters: v.optional(
+            v.array(
+                v.object({
+                    name: v.string(),
+                    email: v.string(),
+                    phone: v.string(),
+                    birthDate: v.string(),
+                    hometown: v.string(),
+                }),
+            ),
+        ),
     })
         .index("by_landlord", ["landlordId"])
         .index("by_dorm", ["dormId"])

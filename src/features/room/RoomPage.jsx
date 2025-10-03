@@ -757,6 +757,7 @@ export default function RoomPage() {
                         open={invoiceDialogOpen}
                         onClose={handleCloseInvoiceDialog}
                         roomId={selectedRoomId}
+                        onDialogClose={reloadRooms} // Add this line to trigger refresh
                     />
                 )}
             </Container>

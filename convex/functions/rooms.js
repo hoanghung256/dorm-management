@@ -408,3 +408,113 @@ export const getRoomAmenities = query({
         }
     },
 });
+
+export const getRentersByRoomId = query({
+    args: { roomId: v.id("rooms") },
+    handler: async (ctx, { roomId }) => {
+        const room = await ctx.db.get(roomId);
+        if (!room) {
+            throw new Error("Room not found");
+        }
+        let renters = room.renters || [];
+        if (room.currentRenterId) {
+            const currentRenter = await ctx.db.get(room.currentRenterId);
+            if (currentRenter) {
+                const user = await ctx.db.get(currentRenter.userId);
+                if (user) {
+                    const representative = {
+                        fullname: user.name || "Unknown",
+                        email: user.email,
+                        phone: user.phone || "",
+                        birthDate: user.birthDate || "",
+                        hometown: user.hometown || "",
+                    };
+                    const alreadyInList = renters.some((r) => r.email === representative.email);
+                    if (!alreadyInList) {
+                        renters = [representative, ...renters];
+                    }
+                }
+            }
+        }
+
+        return renters;
+    },
+});
+
+// Add a new renter to a room's renters array
+export const addRenterToRoom = mutation({
+    args: {
+        roomId: v.id("rooms"),
+        renter: v.object({
+            fullname: v.string(),
+            email: v.string(),
+            phone: v.string(),
+            birthDate: v.string(),
+            hometown: v.string(),
+        }),
+    },
+    handler: async (ctx, { roomId, renter }) => {
+        const room = await ctx.db.get(roomId);
+        if (!room) {
+            throw new Error("Room not found");
+        }
+        const currentRenters = room.renters || [];
+        const isDuplicate = currentRenters.some((r) => r.phone === renter.phone || r.email === renter.email);
+        if (isDuplicate) {
+            throw new Error("Người thuê với số điện thoại hoặc email này đã tồn tại");
+        }
+        await ctx.db.patch(roomId, {
+            renters: [...currentRenters, renter],
+            status: room.status === "vacant" ? "occupied" : room.status,
+        });
+
+        return {
+            success: true,
+            message: "Đã thêm người thuê thành công",
+            renter,
+        };
+    },
+});
+
+// export const removeRenterFromRoom = mutation({
+//     args: {
+//         roomId: v.id("rooms"),
+//         email: v.string(),
+//     },
+//     handler: async (ctx, { roomId, email }) => {
+//         // 1. Lấy thông tin room
+//         const room = await ctx.db.get(roomId);
+//         if (!room) {
+//             throw new Error("Room not found");
+//         }
+
+//         // 2. Nếu room chưa có renters thì return luôn
+//         const renters = room.renters || [];
+
+//         // 3. Lọc bỏ renter có email trùng với tham số truyền vào
+//         const updatedRenters = renters.filter((r) => r.email !== email);
+
+//         await ctx.db.patch(roomId, {
+//             renters: updatedRenters,
+//         });
+
+//         return { success: true, renters: updatedRenters };
+//     },
+// });
+
+export const removeRenterFromRoom = mutation({
+    args: {
+        roomId: v.id("rooms"),
+        email: v.string(),
+    },
+    handler: async (ctx, { roomId, email }) => {
+        const room = await ctx.db.get(roomId);
+        if (!room) throw new Error("Room not found");
+
+        // lọc bỏ renter có email được chọn
+        const updatedRenters = (room.renters || []).filter((r) => r.email !== email);
+
+        await ctx.db.patch(roomId, { renters: updatedRenters });
+        return updatedRenters;
+    },
+});
