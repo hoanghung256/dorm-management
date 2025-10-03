@@ -110,7 +110,8 @@ export const create = mutation({
             dormIdToUse = firstDorm._id;
         }
 
-        return await ctx.db.insert("rooms", {
+        // Create the room
+        const roomId = await ctx.db.insert("rooms", {
             code: trimmedCode,
             price: price ?? 0, // required by schema
             currency: "VND", // required by schema
@@ -119,6 +120,36 @@ export const create = mutation({
             landlordId,
             currentRenterId: undefined,
         });
+
+        // Auto-sync all existing amenities for this dorm to the new room
+        const dormAmenities = await ctx.db
+            .query("amenities")
+            .withIndex("by_dorm", (q) => q.eq("dormId", dormIdToUse))
+            .collect();
+
+        let amenityLinksCreated = 0;
+        for (const amenity of dormAmenities) {
+            // Check if link already exists to avoid duplicates
+            const existingLink = await ctx.db
+                .query("roomAmenities")
+                .withIndex("by_room", (q) => q.eq("roomId", roomId))
+                .filter(q => q.eq(q.field("amenityId"), amenity._id))
+                .first();
+            
+            if (!existingLink) {
+                await ctx.db.insert("roomAmenities", {
+                    roomId: roomId,
+                    amenityId: amenity._id,
+                    lastUsedNumber: 0,
+                    month: new Date().getMonth(),
+                    enabled: true, // Default to enabled
+                });
+                amenityLinksCreated++;
+            }
+        }
+
+        console.log(`Created room ${trimmedCode} with ${amenityLinksCreated} amenity links for dorm ${dormIdToUse}`);
+        return { roomId, amenityLinksCreated, totalAmenities: dormAmenities.length };
     },
 });
 

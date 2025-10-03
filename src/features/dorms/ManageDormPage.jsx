@@ -309,7 +309,7 @@ function ActionMenu({ d, openEditAmenities, openEditDorm, handleDelete, navigate
                     <ListItemIcon>
                         <BuildIcon fontSize="small" />
                     </ListItemIcon>
-                    <ListItemText primary="Sửa vật tư" />
+                    <ListItemText primary="Thêm tiện ích" />
                 </MenuItem>
                 <MenuItem
                     onClick={() => {

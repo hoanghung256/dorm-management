@@ -149,7 +149,7 @@ const CreateInvoiceDialog = ({ open, onClose, roomId }) => {
             hasInput: amenity.details?.unitFeeType !== 'fixed',
             inputLabel: amenity.details?.unitFeeType === 'metered' ? amenity.details?.unit :
                 amenity.details?.unitFeeType === 'per_person' ? 'người' : '',
-            value: invoiceData[amenity.amenityId] || 0,
+            value: invoiceData[amenity.amenityId] ?? '',
             subtext: amenity.details?.unitFeeType === 'metered' ?
                 `Đọc lần cuối: ${amenity.lastUsedNumber || 0} ${amenity.details?.unit}` :
                 amenity.details?.unitFeeType === 'per_person' ?
@@ -469,11 +469,23 @@ const CreateInvoiceDialog = ({ open, onClose, roomId }) => {
                             <TextField
                                 size="small"
                                 fullWidth
-                                type="number"
-                                value={amenity.value}
-                                onChange={(e) =>
-                                    handleInputChange(amenity.id, parseInt(e.target.value, 10) || 0)
-                                }
+                                type="text"
+                                inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
+                                value={String(amenity.value || '')}
+                                onChange={(e) => {
+                                    // Allow only numbers during typing
+                                    const value = e.target.value.replace(/[^0-9]/g, '');
+                                    handleInputChange(amenity.id, value);
+                                }}
+                                onBlur={(e) => {
+                                    // Convert to number on blur for calculations if not empty
+                                    const value = e.target.value.trim();
+                                    if (value === '') {
+                                        handleInputChange(amenity.id, '');
+                                    } else {
+                                        handleInputChange(amenity.id, Number(value));
+                                    }
+                                }}
                                 InputProps={{
                                     endAdornment: (
                                         <InputAdornment position="end">
@@ -523,8 +535,27 @@ const CreateInvoiceDialog = ({ open, onClose, roomId }) => {
                 {(() => {
                     return roomAmenities && roomAmenities.length > 0;
                 })() ? (
-                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 2 }}>
-                        {roomAmenities.map((amenity) => (
+                    <Box sx={{ 
+                        maxHeight: 400, 
+                        overflowY: 'auto',
+                        pr: 1,
+                        '&::-webkit-scrollbar': {
+                            width: '8px',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            backgroundColor: '#f1f1f1',
+                            borderRadius: '10px',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            backgroundColor: '#888',
+                            borderRadius: '10px',
+                        },
+                        '&::-webkit-scrollbar-thumb:hover': {
+                            backgroundColor: '#555',
+                        },
+                    }}>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 2 }}>
+                            {roomAmenities.map((amenity) => (
                             <Card 
                                 key={amenity.amenityId} 
                                 sx={{ 
@@ -634,6 +665,7 @@ const CreateInvoiceDialog = ({ open, onClose, roomId }) => {
                                 </CardContent>
                             </Card>
                         ))}
+                        </Box>
                     </Box>
                 ) : (
                     <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'grey.50' }}>

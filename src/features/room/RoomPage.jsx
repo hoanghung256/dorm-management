@@ -44,6 +44,30 @@ function formatVND(n) {
     }
 }
 
+function getAmenityIcon(type) {
+    switch (type) {
+        case "electricity":
+        case "điện":
+            return "⚡";
+        case "water":
+        case "nước":
+            return "💧";
+        case "internet":
+            return "📶";
+        case "trash":
+        case "rác":
+            return "🗑️";
+        case "elevator":
+        case "thang máy":
+            return "🛗";
+        case "management":
+        case "quản lý":
+            return "👥";
+        default:
+            return "🏠";
+    }
+}
+
 function statusChip(status) {
     switch (status) {
         case "occupied":
@@ -61,6 +85,7 @@ export default function RoomPage() {
     const navigate = useNavigate();
 
     const [rooms, setRooms] = useState([]);
+    const [roomAmenities, setRoomAmenities] = useState({}); // Store amenities by roomId
     const [loading, setLoading] = useState(false);
 
     const [openCreate, setOpenCreate] = useState(false);
@@ -162,6 +187,41 @@ export default function RoomPage() {
                     setRenterNames({});
                 }
 
+                // Load room amenities
+                const roomIds = data.map(room => room._id);
+                console.log("Loading amenities for rooms:", roomIds);
+                console.log("Available API functions:", api.functions.amentities);
+                if (roomIds.length > 0) {
+                    const amenityResults = await Promise.allSettled(
+                        roomIds.map(async (roomId) => {
+                            try {
+                                console.log(`Calling listByRoom for room ${roomId}`);
+                                const result = await convexQueryOneTime(api.functions.amentities.listByRoom, { roomId });
+                                console.log(`Result for room ${roomId}:`, result);
+                                return result;
+                            } catch (error) {
+                                console.error(`Error loading amenities for room ${roomId}:`, error);
+                                throw error;
+                            }
+                        })
+                    );
+                    const amenityMap = {};
+                    amenityResults.forEach((res, idx) => {
+                        const roomId = roomIds[idx];
+                        if (res.status === "fulfilled" && res.value) {
+                            console.log(`Amenities for room ${roomId}:`, res.value);
+                            amenityMap[roomId] = res.value || [];
+                        } else {
+                            console.warn("Failed to load amenities for room", roomId, res.reason);
+                            amenityMap[roomId] = [];
+                        }
+                    });
+                    console.log("Final amenity map:", amenityMap);
+                    setRoomAmenities(amenityMap);
+                } else {
+                    setRoomAmenities({});
+                }
+
                 // Optional: you can load dorm names similarly if you have an API
             } finally {
                 setLoading(false);
@@ -223,6 +283,32 @@ export default function RoomPage() {
                 setRenterNames(map);
             } else {
                 setRenterNames({});
+            }
+
+            // Load room amenities
+            const roomIds = data.map(room => room._id);
+            console.log("Reloading amenities for rooms:", roomIds);
+            if (roomIds.length > 0) {
+                const amenityResults = await Promise.allSettled(
+                    roomIds.map(roomId =>
+                        convexQueryOneTime(api.functions.amentities.listByRoom, { roomId })
+                    )
+                );
+                const amenityMap = {};
+                amenityResults.forEach((res, idx) => {
+                    const roomId = roomIds[idx];
+                    if (res.status === "fulfilled" && res.value) {
+                        console.log(`Reloaded amenities for room ${roomId}:`, res.value);
+                        amenityMap[roomId] = res.value || [];
+                    } else {
+                        console.warn("Failed to reload amenities for room", roomId, res.reason);
+                        amenityMap[roomId] = [];
+                    }
+                });
+                console.log("Final reloaded amenity map:", amenityMap);
+                setRoomAmenities(amenityMap);
+            } else {
+                setRoomAmenities({});
             }
         } finally {
             setLoading(false);
@@ -556,9 +642,45 @@ export default function RoomPage() {
                                         </Typography>
 
                                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                                            <Chip size="small" label="WiFi" variant="outlined" />
-                                            <Chip size="small" label="Điều hòa" variant="outlined" />
-                                            <Chip size="small" label="Bàn" variant="outlined" />
+                                            {(roomAmenities[roomItem._id] || [])
+                                                .filter(amenity => amenity.enabled !== false) // Only show enabled amenities
+                                                .slice(0, 3)
+                                                .map((amenity, index) => (
+                                                <Chip 
+                                                    key={index}
+                                                    size="small" 
+                                                    label={`${getAmenityIcon(amenity.details?.type)} ${amenity.details?.name || 'Tiện ích'}`}
+                                                    variant="outlined"
+                                                    sx={{ 
+                                                        fontSize: '0.75rem',
+                                                        '& .MuiChip-label': {
+                                                            px: 1
+                                                        }
+                                                    }}
+                                                />
+                                            ))}
+                                            {(roomAmenities[roomItem._id] || []).filter(amenity => amenity.enabled !== false).length > 3 && (
+                                                <Chip 
+                                                    size="small" 
+                                                    label={`+${(roomAmenities[roomItem._id] || []).filter(amenity => amenity.enabled !== false).length - 3} khác`}
+                                                    variant="outlined"
+                                                    color="primary"
+                                                    sx={{ fontSize: '0.75rem' }}
+                                                />
+                                            )}
+                                            {(roomAmenities[roomItem._id] || []).filter(amenity => amenity.enabled !== false).length === 0 && (
+                                                <Chip 
+                                                    size="small" 
+                                                    label="Chưa có tiện ích"
+                                                    variant="outlined"
+                                                    color="default"
+                                                    sx={{ 
+                                                        fontSize: '0.75rem',
+                                                        color: 'text.secondary',
+                                                        borderColor: 'divider'
+                                                    }}
+                                                />
+                                            )}
                                         </Stack>
 
                                         <Typography variant="body2" color="text.secondary">

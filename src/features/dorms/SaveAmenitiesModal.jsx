@@ -26,12 +26,12 @@ import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { convexMutation } from "../../services/convexClient";
 import { api } from "../../../convex/_generated/api";
-import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 
 // Clean component implementing 'Chọn loại' placeholder
 function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh }) {
     const [amenities, setAmenities] = useState([]);
+    const [errors, setErrors] = useState([]);
 
     const TYPE_OPTIONS = [
         { value: "điện", label: "Điện", icon: <BoltIcon fontSize="small" color="warning" /> },
@@ -45,6 +45,7 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
 
     useEffect(() => {
         setAmenities(existingAmenities || []);
+        setErrors(new Array(existingAmenities?.length || 0).fill({}));
     }, [existingAmenities]);
 
     const amenityTypes = {
@@ -98,6 +99,42 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
 
     const handleChange = (index, field, value) => {
         setAmenities((prev) => prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)));
+        // Clear error for this field when user starts typing
+        setErrors((prev) => prev.map((err, i) => (i === index ? { ...err, [field]: null } : err)));
+    };
+
+    const validateAmenity = (amenity, index) => {
+        const fieldErrors = {};
+        
+        if (!amenity.name || amenity.name.trim() === "") {
+            fieldErrors.name = "Tên tiện ích không được để trống";
+        }
+        
+        if (!amenity.type) {
+            fieldErrors.type = "Vui lòng chọn loại tiện ích";
+        }
+        
+        if (!amenity.unitPrice || amenity.unitPrice <= 0) {
+            fieldErrors.unitPrice = "Giá đơn vị phải lớn hơn 0";
+        }
+        
+        if (!amenity.unit || amenity.unit.trim() === "") {
+            fieldErrors.unit = "Đơn vị tính không được để trống";
+        }
+        
+        if (!amenity.unitFeeType) {
+            fieldErrors.unitFeeType = "Vui lòng chọn loại phí";
+        }
+        
+        return fieldErrors;
+    };
+
+    const validateAllAmenities = () => {
+        const allErrors = amenities.map((amenity, index) => validateAmenity(amenity, index));
+        setErrors(allErrors);
+        
+        // Check if any errors exist
+        return allErrors.every(error => Object.keys(error).length === 0);
     };
 
     const handlePriceChange = (index, value) => {
@@ -108,6 +145,9 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
         const copy = [...amenities];
         copy[index].unitPrice = parsedValue;
         setAmenities(copy);
+        
+        // Clear error for unitPrice when user starts typing
+        setErrors((prev) => prev.map((err, i) => (i === index ? { ...err, unitPrice: null } : err)));
     };
 
     const addRow = () => {
@@ -118,21 +158,53 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
             unit: "", 
             unitFeeType: "fixed" 
         }]);
+        setErrors([...errors, {}]);
     };
 
     const remove = (index) => {
-        setAmenities((prev) => prev.filter((_, i) => i !== index));
+        setAmenities(amenities.filter((_, i) => i !== index));
+        setErrors(errors.filter((_, i) => i !== index));
     };
 
     const save = async () => {
         if (!dormId) return;
-        await convexMutation(api.functions.amentities.updateDormAmenities, { dormId, amenities });
-        onClose?.();
-        refresh?.();
+        
+        // Validate all amenities first
+        if (!validateAllAmenities()) {
+            return; // Stop if validation fails
+        }
+        
+        try {
+            // Update amenities
+            const updateResult = await convexMutation(api.functions.amentities.updateDormAmenities, { dormId, amenities });
+            console.log("Update result:", updateResult);
+            
+            // Sync amenities to all rooms in this dorm (with error handling)
+            try {
+                const syncResult = await convexMutation(api.functions.amentities.syncAmenitiesForDorm, { dormId });
+                console.log("Sync result:", syncResult);
+                
+                // Wait a bit for the sync to propagate, then refresh
+                setTimeout(() => {
+                    refresh?.();
+                }, 500);
+                
+            } catch (syncError) {
+                console.warn("Sync failed but amenities were saved:", syncError);
+                alert("⚠️ Tiện ích đã được lưu nhưng có lỗi khi đồng bộ với các phòng. Bạn có thể dùng nút 'Đồng Bộ Tiện Ích' để thử lại.");
+                // Still refresh even if sync failed
+                refresh?.();
+            }
+            
+            onClose?.();
+        } catch (error) {
+            console.error("Error saving amenities:", error);
+            alert(`Có lỗi khi lưu tiện ích: ${error.message || error}`);
+        }
     };
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+        <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
             <DialogTitle>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Typography variant="h5" fontWeight="bold" color="primary">
@@ -147,7 +219,7 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                 </Box>
             </DialogTitle>
             
-            <DialogContent dividers sx={{ maxHeight: 500, p: 3 }}>
+            <DialogContent dividers sx={{ p: 3 }}>
                 <Box sx={{ mb: 3 }}>
                     <Typography variant="body2" color="text.secondary">
                         Thêm và quản lý các tiện ích cho nhà trọ của bạn. Mỗi tiện ích có thể được tính phí theo nhiều cách khác nhau.
@@ -179,11 +251,12 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                         </Button>
                     </Box>
                 ) : (
-                    amenities.map((a, i) => (
+                    <Box>
+                        {amenities.map((a, i) => (
                         <Card key={i} sx={{ mb: 2, boxShadow: 2 }}>
                             <CardContent>
-                                <Grid container spacing={2} alignItems="center">
-                                    <Grid item xs={12} sm={3}>
+                                <Grid container spacing={2} alignItems="flex-start">
+                                    <Grid item xs={12} sm={2.2} sx={{ minHeight: 85, display: 'flex', alignItems: 'flex-start' }}>
                                         <TextField
                                             label="Tên tiện ích"
                                             placeholder="VD: Điện, Nước, Internet..."
@@ -192,10 +265,12 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                                             fullWidth
                                             size="small"
                                             variant="outlined"
+                                            error={!!(errors[i]?.name)}
+                                            helperText={errors[i]?.name}
                                         />
                                     </Grid>
                                     
-                                    <Grid item xs={12} sm={2}>
+                                    <Grid item xs={12} sm={2} sx={{ minHeight: 85, display: 'flex', alignItems: 'flex-start' }}>
                                         <TextField
                                             select
                                             label="Loại tiện ích"
@@ -203,6 +278,8 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                                             onChange={(e) => handleChange(i, "type", e.target.value)}
                                             fullWidth
                                             size="small"
+                                            error={!!(errors[i]?.type)}
+                                            helperText={errors[i]?.type}
                                         >
                                             {Object.entries(amenityTypes).map(([key, value]) => (
                                                 <MenuItem key={key} value={key}>
@@ -212,8 +289,8 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                                         </TextField>
                                     </Grid>
                                     
-                                    <Grid item xs={12} sm={2}>
-                                        <Box>
+                                    <Grid item xs={12} sm={2.2} sx={{ minHeight: 85, display: 'flex', alignItems: 'flex-start' }}>
+                                        <Box sx={{ position: 'relative', width: '100%' }}>
                                             <TextField
                                                 label="Giá đơn vị (VNĐ)"
                                                 placeholder="0"
@@ -221,22 +298,30 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                                                 onChange={(e) => handlePriceChange(i, e.target.value)}
                                                 fullWidth
                                                 size="small"
+                                                error={!!(errors[i]?.unitPrice)}
+                                                helperText={errors[i]?.unitPrice}
                                                 InputProps={{
                                                     inputProps: { 
                                                         style: { textAlign: 'right' }
                                                     }
                                                 }}
                                             />
-                                            {a.unitPrice > 0 && (
+                                            {a.unitPrice > 0 && !errors[i]?.unitPrice && (
                                                 <Typography 
                                                     variant="caption" 
                                                     color="text.secondary" 
                                                     sx={{ 
                                                         fontSize: '0.65rem',
                                                         fontStyle: 'italic',
-                                                        display: 'block',
+                                                        position: 'absolute',
+                                                        top: '100%',
+                                                        left: 0,
+                                                        right: 0,
                                                         mt: 0.5,
-                                                        lineHeight: 1.2
+                                                        lineHeight: 1.2,
+                                                        whiteSpace: 'nowrap',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis'
                                                     }}
                                                 >
                                                     {formatCurrencyToText(a.unitPrice)}
@@ -245,7 +330,7 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                                         </Box>
                                     </Grid>
                                     
-                                    <Grid item xs={12} sm={2}>
+                                    <Grid item xs={12} sm={1.8} sx={{ minHeight: 85, display: 'flex', alignItems: 'flex-start' }}>
                                         <TextField
                                             label="Đơn vị tính"
                                             placeholder="VD: kWh, m³, tháng..."
@@ -253,10 +338,12 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                                             onChange={(e) => handleChange(i, "unit", e.target.value)}
                                             fullWidth
                                             size="small"
+                                            error={!!(errors[i]?.unit)}
+                                            helperText={errors[i]?.unit}
                                         />
                                     </Grid>
                                     
-                                    <Grid item xs={12} sm={2}>
+                                    <Grid item xs={12} sm={2} sx={{ minHeight: 85, display: 'flex', alignItems: 'flex-start' }}>
                                         <TextField
                                             select
                                             label="Loại phí"
@@ -264,6 +351,8 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                                             onChange={(e) => handleChange(i, "unitFeeType", e.target.value)}
                                             fullWidth
                                             size="small"
+                                            error={!!(errors[i]?.unitFeeType)}
+                                            helperText={errors[i]?.unitFeeType}
                                         >
                                             {Object.entries(feeTypes).map(([key, value]) => (
                                                 <MenuItem key={key} value={key}>
@@ -273,22 +362,26 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                                         </TextField>
                                     </Grid>
                                     
-                                    <Grid item xs={12} sm={1}>
-                                        <IconButton 
-                                            aria-label="Xóa tiện ích" 
-                                            color="error" 
-                                            onClick={() => remove(i)}
-                                            sx={{ 
-                                                border: '1px solid',
-                                                borderColor: 'error.main',
-                                                '&:hover': {
-                                                    backgroundColor: 'error.light',
-                                                    color: 'white'
-                                                }
-                                            }}
-                                        >
-                                            <DeleteIcon />
-                                        </IconButton>
+                                    <Grid item xs={12} sm={1.8} sx={{ minHeight: 85, display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+                                        <Box sx={{ mt: 1 }}>
+                                            <IconButton 
+                                                aria-label="Xóa tiện ích" 
+                                                color="error" 
+                                                onClick={() => remove(i)}
+                                                sx={{ 
+                                                    border: '1px solid',
+                                                    borderColor: 'error.main',
+                                                    height: '40px',
+                                                    width: '40px',
+                                                    '&:hover': {
+                                                        backgroundColor: 'error.light',
+                                                        color: 'white'
+                                                    }
+                                                }}
+                                            >
+                                                <DeleteIcon />
+                                            </IconButton>
+                                        </Box>
                                     </Grid>
                                 </Grid>
 
@@ -308,7 +401,8 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                                 </Box>
                             </CardContent>
                         </Card>
-                    ))
+                    ))}
+                    </Box>
                 )}
 
                 {amenities.length > 0 && (
@@ -340,7 +434,6 @@ function SaveAmenitiesModal({ dormId, existingAmenities, open, onClose, refresh 
                     onClick={save}
                     size="large"
                     sx={{ minWidth: 120 }}
-                    disabled={amenities.length === 0}
                 >
                     Lưu Thay Đổi
                 </Button>

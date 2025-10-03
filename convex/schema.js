@@ -75,11 +75,12 @@ export default defineSchema({
         amenityId: v.id("amenities"),
         lastUsedNumber: v.number(),
         month: v.number(),
-        active: v.boolean(), // For toggle-type amenities
+        enabled: v.optional(v.boolean()), // Toggle state for amenity in room - default true if not set
     }).index("by_room", ["roomId"]),
 
     invoices: defineTable({
         roomId: v.id("rooms"),
+        dormId: v.id("dorms"), // Thêm dormId vào schema
         period: v.object({
             start: v.number(), //month
             end: v.number(), //month
@@ -96,6 +97,7 @@ export default defineSchema({
         evidenceUrls: v.optional(v.string()),
     })
         .index("by_room", ["roomId"])
+        .index("by_dorm", ["dormId"]) // Thêm index cho dormId
         .index("by_period", ["period"]),
 
     subscriptions: defineTable({

@@ -67,12 +67,19 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
             if (Number.isNaN(p) || p < 0) throw new Error("Giá phòng không hợp lệ.");
 
             setSubmitting(true);
-            await convexMutation(api.functions.rooms.create, {
+            const result = await convexMutation(api.functions.rooms.create, {
                 landlordId,
                 code: trimmed,
                 dormId: dormId || undefined,
                 price: p,
             });
+
+            console.log("Room created with amenities:", result);
+            
+            // Room created successfully - no popup needed
+            // if (result.totalAmenities > 0) {
+            //     alert(`✅ Phòng ${trimmed} đã được tạo thành công với ${result.amenityLinksCreated}/${result.totalAmenities} tiện ích!`);
+            // }
 
             setCode("");
             setPrice(0);
