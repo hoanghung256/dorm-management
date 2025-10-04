@@ -10,10 +10,31 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
     const [dormName, setDormName] = useState("");
     const [dormLoading, setDormLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState("");
+    const [errors, setErrors] = useState({});
+
+    // Validation functions
+    const validateCode = (value) => {
+        const trimmed = value.trim();
+        if (!trimmed) return "Mã phòng không được để trống";
+        if (trimmed.length > 20) return "Mã phòng không được quá 20 ký tự";
+        if (!/^[a-zA-Z0-9\-_\s]+$/.test(trimmed)) return "Mã phòng chỉ được chứa chữ, số, dấu gạch nối và khoảng trắng";
+        return null;
+    };
+
+    const validatePrice = (value) => {
+        const num = Number(value);
+        if (isNaN(num) || num < 0) return "Giá phòng phải là số không âm";
+        if (num > 0 && num < 1000) return "Giá phòng tối thiểu là 1,000 VNĐ";
+        if (num % 1000 !== 0) return "Giá phòng phải ở đơn vị nghìn đồng (ví dụ: 12,000,000)";
+        return null;
+    };
 
     useEffect(() => {
         if (!open) return;
+
+        // Clear errors when form opens
+        setErrors({});
+
         let cancelled = false;
 
         (async () => {
@@ -38,9 +59,9 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
                     setDormName(dormId);
                     const msg = e?.message || "";
                     if (msg.includes("Failed to fetch") || msg.includes("TypeError")) {
-                        setError("Không thể kết nối máy chủ. Hãy chạy `npx convex dev` và kiểm tra VITE_CONVEX_URL.");
+                        setErrors({ general: "Không thể kết nối máy chủ. Hãy chạy `npx convex dev` và kiểm tra VITE_CONVEX_URL." });
                     } else {
-                        setError(msg || "Tải tên khu trọ thất bại.");
+                        setErrors({ general: msg || "Tải tên khu trọ thất bại." });
                     }
                     console.error("Fetch dorm name failed:", e);
                 }
@@ -54,17 +75,50 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
         };
     }, [open, dormId]);
 
+    // Handle input changes with validation
+    const handleCodeChange = (e) => {
+        const value = e.target.value;
+        setCode(value);
+
+        const error = validateCode(value);
+        setErrors(prev => ({
+            ...prev,
+            code: error
+        }));
+    };
+
+    const handlePriceChange = (value) => {
+        setPrice(value);
+
+        const error = validatePrice(value);
+        setErrors(prev => ({
+            ...prev,
+            price: error
+        }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (submitting) return;
-        setError("");
+
+        // Clear previous errors
+        setErrors({});
+
+        // Validate all fields
+        const codeError = validateCode(code);
+        const priceError = validatePrice(price);
+
+        if (codeError || priceError) {
+            setErrors({
+                code: codeError,
+                price: priceError
+            });
+            return;
+        }
 
         try {
             const trimmed = code.trim();
-            if (!trimmed) throw new Error("Mã phòng không được để trống.");
-
             const p = price || 0;
-            if (Number.isNaN(p) || p < 0) throw new Error("Giá phòng không hợp lệ.");
 
             setSubmitting(true);
             const result = await convexMutation(api.functions.rooms.create, {
@@ -75,7 +129,7 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
             });
 
             console.log("Room created with amenities:", result);
-            
+
             // Room created successfully - no popup needed
             // if (result.totalAmenities > 0) {
             //     alert(`✅ Phòng ${trimmed} đã được tạo thành công với ${result.amenityLinksCreated}/${result.totalAmenities} tiện ích!`);
@@ -83,13 +137,14 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
 
             setCode("");
             setPrice(0);
+            setErrors({});
             onCreated?.();
         } catch (err) {
             const msg = err?.message || "Tạo phòng thất bại.";
             if (msg.includes("Failed to fetch")) {
-                setError("Không thể kết nối máy chủ. Hãy chạy `npx convex dev` và kiểm tra VITE_CONVEX_URL.");
+                setErrors({ general: "Không thể kết nối máy chủ. Hãy chạy `npx convex dev` và kiểm tra VITE_CONVEX_URL." });
             } else {
-                setError(msg);
+                setErrors({ general: msg });
             }
             console.error("Create room failed:", err);
         } finally {
@@ -99,7 +154,7 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
 
     const handleClose = () => {
         if (submitting) return;
-        setError("");
+        setErrors({});
         setCode("");
         setPrice(0);
         onClose?.();
@@ -133,23 +188,29 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
                     <TextField
                         label="Mã phòng"
                         value={code}
-                        onChange={(e) => setCode(e.target.value)}
+                        onChange={handleCodeChange}
+                        error={!!errors.code}
+                        helperText={errors.code || "Nhập mã phòng (chỉ chữ, số, dấu gạch)"}
                         autoFocus
                         required
                         fullWidth
                         disabled={submitting}
+                        placeholder="Ví dụ: A101, P-201, Phòng 301"
+                        inputProps={{ maxLength: 20 }}
                     />
                     <CurrencyTextField
                         label="Giá phòng (VNĐ)"
                         value={price}
-                        onChange={setPrice}
-                        helperText="Để trống = 0 VNĐ"
+                        onChange={handlePriceChange}
+                        error={!!errors.price}
+                        helperText={errors.price || "Nhập giá phòng (phải ở đơn vị nghìn đồng)"}
+                        placeholder="Ví dụ: 2500000 (2.5 triệu)"
                         fullWidth
                         disabled={submitting}
                     />
-                    {error && (
+                    {errors.general && (
                         <Typography color="error" variant="body2">
-                            {error}
+                            {errors.general}
                         </Typography>
                     )}
                 </Stack>
