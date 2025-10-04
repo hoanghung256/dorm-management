@@ -279,6 +279,7 @@ export default function RoomPage() {
                         justifyContent: "space-between",
                         alignItems: "flex-start",
                         mb: 3,
+                        mt: 3,
                         width: "100%",
                         maxWidth: 990,
                     }}
@@ -297,7 +298,17 @@ export default function RoomPage() {
                             Quản lí phòng trọ và căn hộ của bạn
                         </Typography>
                     </Box>
-                    <Button onClick={() => handleOpenCreate()} startIcon={<Add />}>
+                    <Button
+                        onClick={() => handleOpenCreate()}
+                        startIcon={<Add />}
+                        variant="body1"
+                        sx={{
+                            color: "#7b1fa2",
+                            fontSize: "13.9px",
+                            fontFamily: "Roboto, Helvetica",
+                            alignSelf: "center",
+                        }}
+                    >
                         Thêm phòng
                     </Button>
                 </Box>

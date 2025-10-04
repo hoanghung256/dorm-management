@@ -24,6 +24,11 @@ body {
     overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
+.no-padding {
+    padding: 0 !important;
+    margin: 0;
+}
+
 a {
     font-weight: 500;
     color: #646cff;

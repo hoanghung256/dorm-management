@@ -33,6 +33,8 @@ import ConfirmModal from "../../components/ConfirmModal";
 function ManageDormPage() {
     const user = useConvexUserData();
     const navigate = useNavigate();
+    // NEW: helper to go to rooms page for a dorm
+    const goToDormRooms = (dormId) => navigate(`/landlord/dorms/${dormId}`);
 
     const [pageData, setPageData] = useState({ items: [], page: 1, pageSize: 10, total: 0, totalPages: 0 });
     const [isShowEditDormModal, setIsShowEditDormModal] = useState(false);
@@ -121,11 +123,24 @@ function ManageDormPage() {
                 onConfirm={handleDelete}
             />
             <Box>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
-                    <Typography variant="h5" fontWeight={600}>
-                        Danh sách Nhà Trọ
-                    </Typography>
-                    <Stack direction="row" spacing={1}>
+                <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    mb={2}
+                    width="100%"
+                    maxWidth={990}
+                >
+                    <Box>
+                        <Typography variant="h4" sx={{ fontWeight: "bold", mb: 0.5 }}>
+                            Danh sách nhà trọ
+                        </Typography>
+                        <Typography variant="body1" sx={{ color: "#7b1fa2", fontSize: "14px" }}>
+                            Chọn nhà trọ để quản lý
+                        </Typography>
+                    </Box>
+
+                    <Stack direction="row" spacing={1} alignItems="center">
                         <Tooltip title="Làm mới">
                             <IconButton onClick={getDorms}>
                                 <RefreshIcon />
@@ -141,6 +156,7 @@ function ManageDormPage() {
                         </Button>
                     </Stack>
                 </Stack>
+
                 {pageData.items.length === 0 && user?.detail?._id && (
                     <Typography variant="body2" sx={{ py: 2 }}>
                         Chưa có trọ nào.
@@ -152,6 +168,8 @@ function ManageDormPage() {
                             <Grid item xs={12} sm={6} md={4} key={d._id}>
                                 <Paper
                                     elevation={3}
+                                    role="button"
+                                    onClick={() => goToDormRooms(d._id)}
                                     sx={{
                                         p: 2.5,
                                         display: "flex",
@@ -163,6 +181,7 @@ function ManageDormPage() {
                                         boxShadow: "0 3px 8px rgba(0,0,0,0.12)",
                                         transition: "transform 0.2s, box-shadow 0.2s",
                                         background: "linear-gradient(180deg,#ffffff 0%,#f9f6fc 100%)",
+                                        cursor: "pointer",
                                         "&:hover": {
                                             transform: "translateY(-3px)",
                                             boxShadow: "0 8px 18px rgba(0,0,0,0.18)",
@@ -176,7 +195,6 @@ function ManageDormPage() {
                                         <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
                                             <ActionMenu
                                                 d={d}
-                                                navigateToRoomsPage={() => navigate(`/landlord/dorms/${d._id}`)}
                                                 openEditAmenities={openEditAmenities}
                                                 openEditDorm={openEditDorm}
                                                 handleDelete={() => handleOpenDeleteConfirmModal(d._id)}
@@ -262,11 +280,17 @@ function ManageDormPage() {
     );
 }
 
-function ActionMenu({ d, openEditAmenities, openEditDorm, handleDelete, navigateToRoomsPage }) {
+function ActionMenu({ d, openEditAmenities, openEditDorm, handleDelete }) {
     const [anchorEl, setAnchorEl] = useState(null);
     const open = Boolean(anchorEl);
-    const handleClick = (e) => setAnchorEl(e.currentTarget);
-    const handleClose = () => setAnchorEl(null);
+    const handleClick = (e) => {
+        e.stopPropagation();
+        setAnchorEl(e.currentTarget);
+    };
+    const handleClose = (e) => {
+        if (e) e.stopPropagation();
+        setAnchorEl(null);
+    };
     return (
         <>
             <Tooltip title="Tùy chọn">
@@ -286,44 +310,37 @@ function ActionMenu({ d, openEditAmenities, openEditDorm, handleDelete, navigate
                 open={open}
                 onClose={handleClose}
                 PaperProps={{ sx: { minWidth: 160 } }}
+                onClick={(e) => e.stopPropagation()} // block bubbling
             >
                 <MenuItem
-                    onClick={() => {
-                        navigateToRoomsPage();
-                        handleClose();
-                    }}
-                >
-                    <ListItemIcon>
-                        <MeetingRoomIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText primary="Quản lý phòng" />
-                </MenuItem>
-                <MenuItem
-                    onClick={() => {
+                    onClick={(e) => {
+                        e.stopPropagation();
                         openEditAmenities(d._id, d.amenities);
-                        handleClose();
+                        handleClose(e);
                     }}
                 >
                     <ListItemIcon>
                         <BuildIcon fontSize="small" />
                     </ListItemIcon>
-                    <ListItemText primary="Sửa vật tư" />
+                    <ListItemText primary="Quản lý vật tư" />
                 </MenuItem>
                 <MenuItem
-                    onClick={() => {
+                    onClick={(e) => {
+                        e.stopPropagation();
                         openEditDorm(d);
-                        handleClose();
+                        handleClose(e);
                     }}
                 >
                     <ListItemIcon>
                         <EditIcon fontSize="small" />
                     </ListItemIcon>
-                    <ListItemText primary="Sửa thông tin trọ" />
+                    <ListItemText primary="Quản lý thông tin trọ" />
                 </MenuItem>
                 <MenuItem
-                    onClick={() => {
-                        handleDelete(d);
-                        handleClose();
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(); // already bound with dormId
+                        handleClose(e);
                     }}
                 >
                     <ListItemIcon>

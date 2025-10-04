@@ -148,7 +148,7 @@ export default function CreateRoomForm({ open, onClose, landlordId, dormId, onCr
                     )}
                 </Stack>
             </DialogContent>
-            <DialogActions>
+            <DialogActions sx={{ px: 3, py: 2 }}>
                 <Button onClick={handleClose} disabled={submitting}>
                     Hủy
                 </Button>

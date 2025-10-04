@@ -1,5 +1,6 @@
 ﻿import React, { useState } from "react";
 import "../../styles/landingPage.css";
+import { Box } from "@mui/material";
 
 const LandingPage = () => {
     const [activeChallenge, setActiveChallenge] = useState(0);
@@ -43,7 +44,7 @@ const LandingPage = () => {
     ];
 
     return (
-        <div className="homepage-container" style={{ margin: 0, padding: 0 }}>
+        <Box className="homepage-container" sx={{ m: 0, p: 0 }}>
             <section id="home" className="homepage-hero">
                 <div className="homepage-content">
                     <h1>Quản Lý Phòng Trọ Thông Minh</h1>
@@ -220,7 +221,7 @@ const LandingPage = () => {
                     </div>
                 </div>
             </section>
-        </div>
+        </Box>
     );
 };
 

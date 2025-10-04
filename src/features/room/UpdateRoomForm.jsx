@@ -11,6 +11,8 @@ import {
     TextField,
     Typography,
     MenuItem,
+    useMediaQuery,
+    useTheme,
 } from "@mui/material";
 
 export default function UpdateRoomForm({ open, onClose, landlordId, dormId, roomId, roomData, onUpdate }) {
@@ -30,6 +32,9 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
         { value: "occupied", label: "Đang sử dụng" },
         { value: "maintenance", label: "Đang sửa" },
     ];
+
+    const theme = useTheme();
+    const fullScreen = useMediaQuery(theme.breakpoints.down("sm")); // responsive fullscreen on small devices
 
     useEffect(() => {
         if (!open || !roomData) return;
@@ -183,35 +188,49 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
         <Dialog
             open={open}
             onClose={handleClose}
-            maxWidth="md"
+            fullScreen={fullScreen}
             fullWidth
+            maxWidth="md"
+            keepMounted
             PaperProps={{
                 sx: {
-                    borderRadius: 3,
-                    minWidth: 560,
-                    maxWidth: 600,
+                    borderRadius: fullScreen ? 0 : 3,
+                    width: "100%",
+                    maxWidth: { xs: "100%", sm: 600, md: 640 },
+                    m: 0,
+                    ...(fullScreen ? {} : { mx: "auto" }),
+                    display: "flex",
+                    flexDirection: "column",
+                    maxHeight: "calc(100vh - 32px)",
                 },
             }}
         >
             <DialogTitle
                 sx={{
                     fontWeight: "bold",
-                    fontSize: "1.3rem",
-                    fontFamily: "Inter, Roboto, Helvetica, Arial, sans-serif",
-                    color: "#333",
-                    pb: 1,
+                    fontSize: "1.25rem",
+                    pr: 6,
                 }}
             >
                 Cập nhật thông tin phòng
             </DialogTitle>
-            <DialogContent sx={{ pt: 2, pb: 1 }}>
+            <DialogContent
+                dividers
+                sx={{
+                    pt: 2,
+                    pb: 2,
+                    px: fullScreen ? 2 : 3,
+                    flex: "1 1 auto",
+                    overflowY: "auto",
+                }}
+            >
                 {error && (
                     <Typography
                         variant="body2"
                         color="error"
                         sx={{
-                            m: 2,
-                            p: 1.5,
+                            mb: 2,
+                            p: 2,
                             backgroundColor: "#ffeaea",
                             borderRadius: 1,
                             border: "1px solid #ffcdd2",
@@ -220,7 +239,7 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
                         {error}
                     </Typography>
                 )}
-                <Stack spacing={2.5}>
+                <Stack spacing={2}>
                     <TextField
                         label="Khu trọ"
                         value={dormLoading ? "Đang tải tên khu trọ..." : dormName || dormId || "Chưa chọn"}
@@ -256,7 +275,6 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
                             const next = e.target.value;
                             setError("");
 
-                            // Check if trying to set status to 'vacant' while there's a current renter
                             const hasCurrentRenter = currentRenterId || roomData?.currentRenterId;
                             if (next === "vacant" && hasCurrentRenter) {
                                 setError(
@@ -266,7 +284,6 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
                             }
 
                             setStatus(next);
-                            // If status set to 'vacant', clear renter automatically
                             if (next === "vacant") {
                                 setCurrentRenterId("");
                             }
@@ -328,7 +345,6 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
                         onChange={(e) => {
                             const nextId = e.target.value;
                             setCurrentRenterId(nextId);
-                            // If user clears renter, auto-set status to vacant
                             if (!nextId) {
                                 setStatus("vacant");
                             }
@@ -392,7 +408,15 @@ export default function UpdateRoomForm({ open, onClose, landlordId, dormId, room
                     </TextField>
                 </Stack>
             </DialogContent>
-            <DialogActions sx={{ px: 5, pb: 3, gap: 1.5, justifyContent: "flex-end" }}>
+            <DialogActions
+                sx={{
+                    px: fullScreen ? 2 : 5,
+                    py: 2,
+                    gap: 1.5,
+                    justifyContent: "flex-end",
+                    flexShrink: 0,
+                }}
+            >
                 <Button
                     onClick={handleClose}
                     variant="outlined"

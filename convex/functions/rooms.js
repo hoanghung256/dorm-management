@@ -66,6 +66,11 @@ export const getById = query({
         return {
             ...room,
             renter: renterInfo,
+            // Map name to fullname for frontend compatibility in renters array
+            renters: (room.renters || []).map((r) => ({
+                ...r,
+                fullname: r.name || r.fullname, // Ensure fullname exists for frontend
+            })),
         };
     },
 });
@@ -110,7 +115,8 @@ export const create = mutation({
             dormIdToUse = firstDorm._id;
         }
 
-        return await ctx.db.insert("rooms", {
+        // Create the room
+        const roomId = await ctx.db.insert("rooms", {
             code: trimmedCode,
             price: price ?? 0, // required by schema
             currency: "VND", // required by schema
@@ -119,6 +125,36 @@ export const create = mutation({
             landlordId,
             currentRenterId: undefined,
         });
+
+        // Auto-sync all existing amenities for this dorm to the new room
+        const dormAmenities = await ctx.db
+            .query("amenities")
+            .withIndex("by_dorm", (q) => q.eq("dormId", dormIdToUse))
+            .collect();
+
+        let amenityLinksCreated = 0;
+        for (const amenity of dormAmenities) {
+            // Check if link already exists to avoid duplicates
+            const existingLink = await ctx.db
+                .query("roomAmenities")
+                .withIndex("by_room", (q) => q.eq("roomId", roomId))
+                .filter((q) => q.eq(q.field("amenityId"), amenity._id))
+                .first();
+
+            if (!existingLink) {
+                await ctx.db.insert("roomAmenities", {
+                    roomId: roomId,
+                    amenityId: amenity._id,
+                    lastUsedNumber: 0,
+                    month: new Date().getMonth(),
+                    enabled: true, // Default to enabled
+                });
+                amenityLinksCreated++;
+            }
+        }
+
+        console.log(`Created room ${trimmedCode} with ${amenityLinksCreated} amenity links for dorm ${dormIdToUse}`);
+        return { roomId, amenityLinksCreated, totalAmenities: dormAmenities.length };
     },
 });
 
@@ -375,5 +411,123 @@ export const getRoomAmenities = query({
         } catch (error) {
             throw error;
         }
+    },
+});
+
+export const getRentersByRoomId = query({
+    args: { roomId: v.id("rooms") },
+    handler: async (ctx, { roomId }) => {
+        const room = await ctx.db.get(roomId);
+        if (!room) {
+            throw new Error("Room not found");
+        }
+        let renters = room.renters || [];
+        if (room.currentRenterId) {
+            const currentRenter = await ctx.db.get(room.currentRenterId);
+            if (currentRenter) {
+                const user = await ctx.db.get(currentRenter.userId);
+                if (user) {
+                    const representative = {
+                        fullname: user.name || "Unknown", // Keep fullname for frontend compatibility
+                        email: user.email,
+                        phone: user.phone || "",
+                        birthDate: user.birthDate || "",
+                        hometown: user.hometown || "",
+                    };
+                    const alreadyInList = renters.some((r) => r.email === representative.email);
+                    if (!alreadyInList) {
+                        renters = [representative, ...renters];
+                    }
+                }
+            }
+        }
+
+        return renters;
+    },
+});
+
+// Add a new renter to a room's renters array
+export const addRenterToRoom = mutation({
+    args: {
+        roomId: v.id("rooms"),
+        renter: v.object({
+            fullname: v.string(),
+            email: v.string(),
+            phone: v.string(),
+            birthDate: v.string(),
+            hometown: v.string(),
+        }),
+    },
+    handler: async (ctx, { roomId, renter }) => {
+        const room = await ctx.db.get(roomId);
+        if (!room) {
+            throw new Error("Room not found");
+        }
+        const currentRenters = room.renters || [];
+        const isDuplicate = currentRenters.some((r) => r.phone === renter.phone || r.email === renter.email);
+        if (isDuplicate) {
+            throw new Error("Người thuê với số điện thoại hoặc email này đã tồn tại");
+        }
+
+        // Map fullname to name to match database schema
+        const renterToSave = {
+            ...renter,
+            name: renter.fullname, // Convert fullname to name for database
+        };
+        delete renterToSave.fullname; // Remove fullname field
+
+        await ctx.db.patch(roomId, {
+            renters: [...currentRenters, renterToSave],
+            status: room.status === "vacant" ? "occupied" : room.status,
+        });
+
+        return {
+            success: true,
+            message: "Đã thêm người thuê thành công",
+            renter: renterToSave,
+        };
+    },
+});
+
+// export const removeRenterFromRoom = mutation({
+//     args: {
+//         roomId: v.id("rooms"),
+//         email: v.string(),
+//     },
+//     handler: async (ctx, { roomId, email }) => {
+//         // 1. Lấy thông tin room
+//         const room = await ctx.db.get(roomId);
+//         if (!room) {
+//             throw new Error("Room not found");
+//         }
+
+//         // 2. Nếu room chưa có renters thì return luôn
+//         const renters = room.renters || [];
+
+//         // 3. Lọc bỏ renter có email trùng với tham số truyền vào
+//         const updatedRenters = renters.filter((r) => r.email !== email);
+
+//         await ctx.db.patch(roomId, {
+//             renters: updatedRenters,
+//         });
+
+//         return { success: true, renters: updatedRenters };
+//     },
+// });
+
+export const removeRenterFromRoom = mutation({
+    args: {
+        roomId: v.id("rooms"),
+        email: v.string(),
+    },
+    handler: async (ctx, { roomId, email }) => {
+        const room = await ctx.db.get(roomId);
+        if (!room) throw new Error("Room not found");
+
+        // lọc bỏ renter có email được chọn
+        const updatedRenters = (room.renters || []).filter((r) => r.email !== email);
+
+        await ctx.db.patch(roomId, { renters: updatedRenters });
+        return updatedRenters;
     },
 });
