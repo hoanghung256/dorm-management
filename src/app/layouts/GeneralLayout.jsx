@@ -55,7 +55,7 @@ function Sidebar() {
     const items = useMemo(
         () => [
             { key: "rooms", label: "Quản lí phòng trọ", to: "/landlord/dorms", icon: <HomeRoundedIcon /> },
-            { key: "reports", label: "Báo cáo hóa đơn", to: null, icon: <ReceiptLongRoundedIcon /> },
+            { key: "reports", label: "Báo cáo hóa đơn", to: "/landlord/invoices", icon: <ReceiptLongRoundedIcon /> },
             { key: "info", label: "Thông tin phòng trọ", to: null, icon: <SettingsRoundedIcon /> },
         ],
         [],

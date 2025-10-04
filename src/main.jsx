@@ -20,25 +20,27 @@ const store = configureStore({ reducer: rootReducer });
 createRoot(document.getElementById("root")).render(
     <ThemeProvider theme={theme}>
         <CssBaseline />
-        <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}
+        <ClerkProvider
+            publishableKey={CLERK_PUBLISHABLE_KEY}
             localization={{
                 signIn: {
-                  start: {
-                    title: 'Đăng nhập vào hệ thống DMS',
-                    subtitle: 'Vui lòng nhập thông tin đăng nhập của bạn để tiếp tục.',
-                    actionText: 'Bạn chưa có tài khoản ?',
-                    actionLink: 'Đăng ký',
-                  }
+                    start: {
+                        title: "Đăng nhập vào hệ thống DMS",
+                        subtitle: "Vui lòng nhập thông tin đăng nhập của bạn để tiếp tục.",
+                        actionText: "Bạn chưa có tài khoản ?",
+                        actionLink: "Đăng ký",
+                    },
                 },
                 signUp: {
-                  start: {
-                    title: 'Chào mừng bạn đến với DMS',
-                    subtitle: 'Vui lòng điền thông tin của bạn vào bên dưới để đăng ký.',
-                    actionText: 'Bạn đã có tài khoản?',
-                    actionLink: 'Đăng nhập ngay',
-                  }
-                }
-            }}>
+                    start: {
+                        title: "Chào mừng bạn đến với DMS",
+                        subtitle: "Vui lòng điền thông tin của bạn vào bên dưới để đăng ký.",
+                        actionText: "Bạn đã có tài khoản?",
+                        actionLink: "Đăng nhập ngay",
+                    },
+                },
+            }}
+        >
             <Provider store={store}>
                 <RouterProvider router={router} />
                 <Toaster position="top-right" />

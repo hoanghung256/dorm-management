@@ -19,7 +19,7 @@ export default function GeneralHeader() {
                 backgroundColor: "rgba(0, 0, 0, 0.03)",
                 height: `${NAVBAR_HEIGHT}px`,
                 width: "100%",
-                zIndex: 1200, // Higher than default AppBar zIndex (1100)
+                zIndex: 1200,
                 top: 0,
                 left: 0,
                 right: 0,
@@ -66,7 +66,6 @@ export default function GeneralHeader() {
                     >
                         <Typography
                             sx={{
-                                fontFamily: "'Poppins', Helvetica",
                                 fontWeight: 700,
                                 color: "black",
                                 fontSize: "17px",
@@ -98,7 +97,6 @@ export default function GeneralHeader() {
                             height: "40px",
                             px: 2,
                             borderRadius: "8px",
-                            fontFamily: "'Poppins', Helvetica",
                             fontWeight: 700,
                             fontSize: "16px",
                             textTransform: "none",
@@ -118,7 +116,6 @@ export default function GeneralHeader() {
                             height: "40px",
                             px: 2,
                             borderRadius: "8px",
-                            fontFamily: "'Poppins', Helvetica",
                             fontWeight: 700,
                             fontSize: "16px",
                             textTransform: "none",
@@ -138,7 +135,6 @@ export default function GeneralHeader() {
                             height: "40px",
                             px: 2,
                             borderRadius: "8px",
-                            fontFamily: "'Poppins', Helvetica",
                             fontWeight: 700,
                             fontSize: "16px",
                             textTransform: "none",
@@ -163,7 +159,6 @@ export default function GeneralHeader() {
                                 height: "40px",
                                 px: 2,
                                 borderRadius: "8px",
-                                fontFamily: "'Poppins', Helvetica",
                                 fontWeight: 700,
                                 fontSize: "16px",
                                 textTransform: "none",

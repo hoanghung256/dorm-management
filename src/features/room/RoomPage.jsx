@@ -402,6 +402,7 @@ export default function RoomPage() {
                         justifyContent: "space-between",
                         alignItems: "flex-start",
                         mb: 3,
+                        mt: 3,
                         width: "100%",
                         maxWidth: 990,
                     }}

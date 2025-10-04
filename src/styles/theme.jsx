@@ -24,7 +24,7 @@ const theme = createTheme({
         divider: grey[300],
     },
     typography: {
-        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+        fontFamily: '"Be Vietnam Pro","Inter", "Roboto", "Helvetica", "Arial", sans-serif',
         h1: { fontWeight: 600, fontSize: "3rem" },
         h2: { fontWeight: 600, fontSize: "2.25rem" },
         button: { textTransform: "none", fontWeight: 600 },
