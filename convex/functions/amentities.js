@@ -34,24 +34,24 @@ export const updateDormAmenities = mutation({
             if (!amenity.name || amenity.name.trim() === "") {
                 throw new Error("Tên tiện ích không được để trống");
             }
-
+            
             if (amenity.unitPrice === null || amenity.unitPrice === undefined) {
                 throw new Error("Giá đơn vị không được để trống");
             }
-
+            
             if (amenity.unitPrice < 0) {
                 throw new Error("Giá đơn vị không được âm");
             }
-
+            
             if (!amenity.unitFeeType || amenity.unitFeeType.trim() === "") {
                 throw new Error("Loại phí không được để trống");
             }
-
+            
             // Validate unit field if provided
             if (amenity.unit !== undefined && amenity.unit !== null && amenity.unit.trim() === "") {
                 throw new Error("Đơn vị tính không được để trống nếu có nhập");
             }
-
+            
             // Validate type field if provided
             if (amenity.type !== undefined && amenity.type !== null && amenity.type.trim() === "") {
                 throw new Error("Loại tiện ích không được để trống nếu có chọn");
@@ -105,13 +105,13 @@ export const updateDormAmenities = mutation({
                 // Delete related roomAmenities first
                 const relatedRoomAmenities = await ctx.db
                     .query("roomAmenities")
-                    .filter((q) => q.eq(q.field("amenityId"), oldAmenity._id))
+                    .filter(q => q.eq(q.field("amenityId"), oldAmenity._id))
                     .collect();
-
+                
                 for (const roomAmenity of relatedRoomAmenities) {
                     await ctx.db.delete(roomAmenity._id);
                 }
-
+                
                 // Then delete the amenity
                 await ctx.db.delete(oldAmenity._id);
                 deleted++;
@@ -127,15 +127,15 @@ export const updateDormAmenities = mutation({
                 .collect();
 
             // Create roomAmenities links for each new amenity with each room
-            for (const roomId of roomsInDorm.map((r) => r._id)) {
+            for (const roomId of roomsInDorm.map(r => r._id)) {
                 for (const amenityId of newAmenityIds) {
                     // Check if link already exists to avoid duplicates
                     const existingLink = await ctx.db
                         .query("roomAmenities")
                         .withIndex("by_room", (q) => q.eq("roomId", roomId))
-                        .filter((q) => q.eq(q.field("amenityId"), amenityId))
+                        .filter(q => q.eq(q.field("amenityId"), amenityId))
                         .first();
-
+                    
                     if (!existingLink) {
                         await ctx.db.insert("roomAmenities", {
                             roomId: roomId,
@@ -149,19 +149,7 @@ export const updateDormAmenities = mutation({
             }
         }
 
-        return {
-            updated,
-            inserted,
-            deleted,
-            total: args.amenities.length,
-            roomLinksCreated:
-                newAmenityIds.length *
-                (await ctx.db
-                    .query("rooms")
-                    .withIndex("by_dorm", (q) => q.eq("dormId", args.dormId))
-                    .collect()
-                    .then((rooms) => rooms.length)),
-        };
+        return { updated, inserted, deleted, total: args.amenities.length, roomLinksCreated: newAmenityIds.length * await ctx.db.query("rooms").withIndex("by_dorm", (q) => q.eq("dormId", args.dormId)).collect().then(rooms => rooms.length) };
     },
 });
 
@@ -176,18 +164,18 @@ export const toggleRoomAmenity = mutation({
         const roomAmenity = await ctx.db
             .query("roomAmenities")
             .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
-            .filter((q) => q.eq(q.field("amenityId"), args.amenityId))
+            .filter(q => q.eq(q.field("amenityId"), args.amenityId))
             .first();
-
+        
         if (!roomAmenity) {
             throw new Error("Room amenity not found");
         }
-
+        
         // Update the enabled state
         await ctx.db.patch(roomAmenity._id, {
             enabled: args.enabled,
         });
-
+        
         return { success: true };
     },
 });
@@ -198,9 +186,9 @@ export const migrateRoomAmenitiesEnabled = mutation({
     handler: async (ctx, args) => {
         const roomAmenities = await ctx.db
             .query("roomAmenities")
-            .filter((q) => q.eq(q.field("enabled"), undefined))
+            .filter(q => q.eq(q.field("enabled"), undefined))
             .collect();
-
+        
         let migrated = 0;
         for (const roomAmenity of roomAmenities) {
             await ctx.db.patch(roomAmenity._id, {
@@ -208,7 +196,7 @@ export const migrateRoomAmenitiesEnabled = mutation({
             });
             migrated++;
         }
-
+        
         return { migrated };
     },
 });
@@ -240,7 +228,7 @@ export const syncAmenitiesForDorm = mutation({
                 const existingLink = await ctx.db
                     .query("roomAmenities")
                     .withIndex("by_room", (q) => q.eq("roomId", room._id))
-                    .filter((q) => q.eq(q.field("amenityId"), amenity._id))
+                    .filter(q => q.eq(q.field("amenityId"), amenity._id))
                     .first();
 
                 if (!existingLink) {
@@ -257,11 +245,11 @@ export const syncAmenitiesForDorm = mutation({
             }
         }
 
-        return {
-            success: true,
-            linksCreated,
-            roomsProcessed: rooms.length,
-            amenitiesProcessed: amenities.length,
+        return { 
+            success: true, 
+            linksCreated, 
+            roomsProcessed: rooms.length, 
+            amenitiesProcessed: amenities.length 
         };
     },
 });
@@ -285,7 +273,7 @@ export const listByRoom = query({
             if (amenityDetails) {
                 amenitiesWithDetails.push({
                     ...roomAmenity,
-                    details: amenityDetails,
+                    details: amenityDetails
                 });
             }
         }

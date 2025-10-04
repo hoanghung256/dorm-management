@@ -162,10 +162,15 @@ function ManageDormPage() {
                         Chưa có trọ nào.
                     </Typography>
                 )}
-                <Box sx={{ p: { xs: 0, md: 1 } }}>
+
+                <Box
+                    sx={{
+                        padding: { xs: 0, md: 1 },
+                    }}
+                >
                     <Grid container spacing={3}>
-                        {pageData.items.map((d) => (
-                            <Grid item xs={12} sm={6} md={4} key={d._id}>
+                        {pageData?.items.map((d) => (
+                            <Grid item sm={6} key={d._id}>
                                 <Paper
                                     elevation={3}
                                     role="button"
@@ -174,11 +179,15 @@ function ManageDormPage() {
                                         p: 2.5,
                                         display: "flex",
                                         flexDirection: "column",
-                                        gap: 1.5,
+                                        gap: 2,
+                                        justifyContent: "space-between",
+                                        width: 400,
+                                        minHeight: "200px",
                                         height: "100%",
-                                        borderRadius: 4,
+                                        borderRadius: 2,
                                         position: "relative",
-                                        boxShadow: "0 3px 8px rgba(0,0,0,0.12)",
+                                        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+                                        cursor: "pointer",
                                         transition: "transform 0.2s, box-shadow 0.2s",
                                         background: "linear-gradient(180deg,#ffffff 0%,#f9f6fc 100%)",
                                         cursor: "pointer",
@@ -188,38 +197,31 @@ function ManageDormPage() {
                                         },
                                     }}
                                 >
-                                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                                        <Typography variant="h6" fontSize={18} fontWeight={700} sx={{ pr: 1 }} noWrap>
-                                            {d.name || "(Không tên)"}
+                                    {/* Header */}
+                                    <Stack
+                                        direction="row"
+                                        justifyContent="space-between"
+                                        alignItems="center"
+                                        spacing={1}
+                                    >
+                                        <Typography variant="h6" fontSize={20} fontWeight={700} sx={{ pr: 1 }}>
+                                            {d.name}
                                         </Typography>
-                                        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
+
+                                        <Box onClick={(e) => e.stopPropagation()}>
                                             <ActionMenu
                                                 d={d}
                                                 openEditAmenities={openEditAmenities}
                                                 openEditDorm={openEditDorm}
                                                 handleDelete={() => handleOpenDeleteConfirmModal(d._id)}
                                             />
-                                        </Stack>
+                                        </Box>
                                     </Stack>
-                                    <Box
-                                        sx={{
-                                            width: "100%",
-                                            borderRadius: 3,
-                                            overflow: "hidden",
-                                            aspectRatio: "4 / 2.4",
-                                            backgroundColor: "#ede7f6",
-                                        }}
-                                    >
-                                        <Box
-                                            component="img"
-                                            src="/dorm-placeholder.svg"
-                                            alt={d.name || "Dorm"}
-                                            loading="lazy"
-                                            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                        />
-                                    </Box>
+                                    
                                     <Divider />
-                                    <Stack spacing={1.25} sx={{ flexGrow: 1 }}>
+
+                                    {/* Content */}
+                                    <Stack spacing={2}>
                                         <Stack spacing={0.5}>
                                             <Typography variant="body2" color="text.secondary" fontWeight={500}>
                                                 Địa chỉ
@@ -231,14 +233,13 @@ function ManageDormPage() {
                                                 >
                                                     📍
                                                 </Box>
-                                                <Typography variant="body1" sx={{ fontSize: 14 }}>
-                                                    {d.address || "(Chưa cập nhật)"}
-                                                </Typography>
+                                                <Typography variant="body1">{d.address || "Chưa có địa chỉ"}</Typography>
                                             </Stack>
                                         </Stack>
+
                                         <Stack spacing={0.5}>
                                             <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                                                Thông tin ngày
+                                                Thông tin
                                             </Typography>
                                             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                                                 <Chip
@@ -249,7 +250,7 @@ function ManageDormPage() {
                                                             : "Ngày chốt: Chưa đặt"
                                                     }
                                                     variant="filled"
-                                                    sx={{ width: "fit-content", height: 22, fontSize: "0.65rem" }}
+                                                    sx={{ height: 24, fontSize: "0.8rem" }}
                                                 />
                                                 {d.createdAt && (
                                                     <Chip
@@ -263,7 +264,7 @@ function ManageDormPage() {
                                                             })
                                                         }
                                                         variant="outlined"
-                                                        sx={{ width: "fit-content", height: 22, fontSize: "0.65rem" }}
+                                                        sx={{ height: 24, fontSize: "0.8rem" }}
                                                     />
                                                 )}
                                             </Stack>

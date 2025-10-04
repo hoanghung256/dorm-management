@@ -67,7 +67,7 @@ export const getById = query({
             ...room,
             renter: renterInfo,
             // Map name to fullname for frontend compatibility in renters array
-            renters: (room.renters || []).map((r) => ({
+            renters: (room.renters || []).map(r => ({
                 ...r,
                 fullname: r.name || r.fullname, // Ensure fullname exists for frontend
             })),
@@ -138,9 +138,9 @@ export const create = mutation({
             const existingLink = await ctx.db
                 .query("roomAmenities")
                 .withIndex("by_room", (q) => q.eq("roomId", roomId))
-                .filter((q) => q.eq(q.field("amenityId"), amenity._id))
+                .filter(q => q.eq(q.field("amenityId"), amenity._id))
                 .first();
-
+            
             if (!existingLink) {
                 await ctx.db.insert("roomAmenities", {
                     roomId: roomId,

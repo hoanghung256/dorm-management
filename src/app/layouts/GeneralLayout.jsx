@@ -30,12 +30,12 @@ function GeneralLayout() {
                     component="main"
                     sx={{
                         flexGrow: 1,
-                        py: 3,
+                        py: 0,
                         position: "relative",
                         zIndex: 1,
                     }}
                 >
-                    <Container maxWidth="lg">
+                    <Container maxWidth="lg" sx={{ padding: 0 }}>
                         <Outlet />
                     </Container>
                 </Box>
