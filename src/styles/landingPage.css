@@ -13,6 +13,11 @@ html {
     overflow-x: hidden;
 }
 
+main {
+    padding: 0;
+    margin: 0;
+}
+
 body {
     font-family:
         "Inter",
@@ -87,6 +92,10 @@ body {
     max-width: 100% !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+
+
 }
 
 .homepage-content {
@@ -1003,7 +1012,6 @@ body {
 }
 
 .contact-form-wrapper h2 {
-    font-family: "Poppins", sans-serif;
     font-size: 3rem;
     font-weight: 700;
     color: #1e293b;
@@ -1096,7 +1104,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    /* background: linear-gradient(135deg, #8b5cf6, #7c3aed); */
     border-radius: 10px;
     filter: grayscale(100%);
 }

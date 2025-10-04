@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { convexQueryOneTime, convexMutation } from "../../services/convexClient";
 import useClerkUserData from "../../hooks/useClerkUserData";
 import { api } from "../../../convex/_generated/api";
@@ -19,8 +19,17 @@ import {
     ListItemIcon,
     ListItemText,
     Avatar,
+    Breadcrumbs,
+    Link,
 } from "@mui/material";
-import { Add, MoreVert, EditOutlined, DeleteOutline } from "@mui/icons-material";
+import { 
+    Add, 
+    MoreVert, 
+    EditOutlined, 
+    DeleteOutline,
+    Home as HomeIcon,
+    NavigateNext as NavigateNextIcon,
+} from "@mui/icons-material";
 import ConfirmModal from "../../components/ConfirmModal";
 import UpdateRoomForm from "../../features/room/UpdateRoomForm";
 import SearchRoomForm from "./SearchRoomForm";
@@ -32,6 +41,30 @@ function formatVND(n) {
         return new Intl.NumberFormat("vi-VN").format(n);
     } catch {
         return `${n}`;
+    }
+}
+
+function getAmenityIcon(type) {
+    switch (type) {
+        case "electricity":
+        case "điện":
+            return "⚡";
+        case "water":
+        case "nước":
+            return "💧";
+        case "internet":
+            return "📶";
+        case "trash":
+        case "rác":
+            return "🗑️";
+        case "elevator":
+        case "thang máy":
+            return "🛗";
+        case "management":
+        case "quản lý":
+            return "👥";
+        default:
+            return "🏠";
     }
 }
 
@@ -49,8 +82,10 @@ function statusChip(status) {
 export default function RoomPage() {
     const { user } = useClerkUserData();
     const { dormId: routeDormId } = useParams();
+    const navigate = useNavigate();
 
     const [rooms, setRooms] = useState([]);
+    const [roomAmenities, setRoomAmenities] = useState({}); // Store amenities by roomId
     const [loading, setLoading] = useState(false);
 
     const [openCreate, setOpenCreate] = useState(false);
@@ -152,6 +187,41 @@ export default function RoomPage() {
                     setRenterNames({});
                 }
 
+                // Load room amenities
+                const roomIds = data.map(room => room._id);
+                console.log("Loading amenities for rooms:", roomIds);
+                console.log("Available API functions:", api.functions.amentities);
+                if (roomIds.length > 0) {
+                    const amenityResults = await Promise.allSettled(
+                        roomIds.map(async (roomId) => {
+                            try {
+                                console.log(`Calling listByRoom for room ${roomId}`);
+                                const result = await convexQueryOneTime(api.functions.amentities.listByRoom, { roomId });
+                                console.log(`Result for room ${roomId}:`, result);
+                                return result;
+                            } catch (error) {
+                                console.error(`Error loading amenities for room ${roomId}:`, error);
+                                throw error;
+                            }
+                        })
+                    );
+                    const amenityMap = {};
+                    amenityResults.forEach((res, idx) => {
+                        const roomId = roomIds[idx];
+                        if (res.status === "fulfilled" && res.value) {
+                            console.log(`Amenities for room ${roomId}:`, res.value);
+                            amenityMap[roomId] = res.value || [];
+                        } else {
+                            console.warn("Failed to load amenities for room", roomId, res.reason);
+                            amenityMap[roomId] = [];
+                        }
+                    });
+                    console.log("Final amenity map:", amenityMap);
+                    setRoomAmenities(amenityMap);
+                } else {
+                    setRoomAmenities({});
+                }
+
                 // Optional: you can load dorm names similarly if you have an API
             } finally {
                 setLoading(false);
@@ -214,6 +284,32 @@ export default function RoomPage() {
             } else {
                 setRenterNames({});
             }
+
+            // Load room amenities
+            const roomIds = data.map(room => room._id);
+            console.log("Reloading amenities for rooms:", roomIds);
+            if (roomIds.length > 0) {
+                const amenityResults = await Promise.allSettled(
+                    roomIds.map(roomId =>
+                        convexQueryOneTime(api.functions.amentities.listByRoom, { roomId })
+                    )
+                );
+                const amenityMap = {};
+                amenityResults.forEach((res, idx) => {
+                    const roomId = roomIds[idx];
+                    if (res.status === "fulfilled" && res.value) {
+                        console.log(`Reloaded amenities for room ${roomId}:`, res.value);
+                        amenityMap[roomId] = res.value || [];
+                    } else {
+                        console.warn("Failed to reload amenities for room", roomId, res.reason);
+                        amenityMap[roomId] = [];
+                    }
+                });
+                console.log("Final reloaded amenity map:", amenityMap);
+                setRoomAmenities(amenityMap);
+            } else {
+                setRoomAmenities({});
+            }
         } finally {
             setLoading(false);
         }
@@ -272,6 +368,33 @@ export default function RoomPage() {
             />
 
             <Container sx={{ py: 3 }}>
+                {/* Breadcrumb Navigation */}
+                <Breadcrumbs 
+                    separator={<NavigateNextIcon fontSize="small" />} 
+                    aria-label="breadcrumb"
+                    sx={{ mb: 3 }}
+                >
+                    <Link 
+                        underline="hover" 
+                        color="inherit" 
+                        component="button"
+                        onClick={() => navigate('/landlord/dorms')}
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            '&:hover': {
+                                color: 'primary.main',
+                            }
+                        }}
+                    >
+                        <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
+                        Danh sách Nhà Trọ
+                    </Link>
+                    <Typography color="text.primary" sx={{ fontWeight: 500 }}>
+                        {routeDormId ? `Phòng của nhà trọ` : 'Tất cả phòng'}
+                    </Typography>
+                </Breadcrumbs>
+
                 {/* Header */}
                 <Box
                     sx={{
@@ -297,7 +420,21 @@ export default function RoomPage() {
                             Quản lí phòng trọ và căn hộ của bạn
                         </Typography>
                     </Box>
-                    <Button onClick={() => handleOpenCreate()} startIcon={<Add />}>
+                    <Button 
+                        onClick={() => handleOpenCreate()} 
+                        startIcon={<Add />}
+                        variant="contained"
+                        sx={{
+                            backgroundColor: "#7b1fa2",
+                            textTransform: "none",
+                            fontWeight: 500,
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)",
+                            "&:hover": {
+                                backgroundColor: "#6a1b9a",
+                                boxShadow: "0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23)",
+                            }
+                        }}
+                    >
                         Thêm phòng
                     </Button>
                 </Box>
@@ -367,7 +504,7 @@ export default function RoomPage() {
                             <Typography align="center" color="text.secondary" sx={{ fontStyle: "italic" }}>
                                 {rooms.length === 0 ? "Chưa có phòng nào" : "Không tìm thấy phòng phù hợp"}
                             </Typography>
-                            {rooms.length === 0 && !loading && (
+                            {/* {rooms.length === 0 && !loading && (
                                 <Box sx={{ textAlign: "center", mt: 2 }}>
                                     <Button
                                         variant="contained"
@@ -386,7 +523,7 @@ export default function RoomPage() {
                                         Thêm phòng
                                     </Button>
                                 </Box>
-                            )}
+                            )} */}
                         </Grid>
                     ) : (
                         filteredRooms.map((roomItem) => {
@@ -505,9 +642,45 @@ export default function RoomPage() {
                                         </Typography>
 
                                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                                            <Chip size="small" label="WiFi" variant="outlined" />
-                                            <Chip size="small" label="Điều hòa" variant="outlined" />
-                                            <Chip size="small" label="Bàn" variant="outlined" />
+                                            {(roomAmenities[roomItem._id] || [])
+                                                .filter(amenity => amenity.enabled !== false) // Only show enabled amenities
+                                                .slice(0, 3)
+                                                .map((amenity, index) => (
+                                                <Chip 
+                                                    key={index}
+                                                    size="small" 
+                                                    label={`${getAmenityIcon(amenity.details?.type)} ${amenity.details?.name || 'Tiện ích'}`}
+                                                    variant="outlined"
+                                                    sx={{ 
+                                                        fontSize: '0.75rem',
+                                                        '& .MuiChip-label': {
+                                                            px: 1
+                                                        }
+                                                    }}
+                                                />
+                                            ))}
+                                            {(roomAmenities[roomItem._id] || []).filter(amenity => amenity.enabled !== false).length > 3 && (
+                                                <Chip 
+                                                    size="small" 
+                                                    label={`+${(roomAmenities[roomItem._id] || []).filter(amenity => amenity.enabled !== false).length - 3} khác`}
+                                                    variant="outlined"
+                                                    color="primary"
+                                                    sx={{ fontSize: '0.75rem' }}
+                                                />
+                                            )}
+                                            {(roomAmenities[roomItem._id] || []).filter(amenity => amenity.enabled !== false).length === 0 && (
+                                                <Chip 
+                                                    size="small" 
+                                                    label="Chưa có tiện ích"
+                                                    variant="outlined"
+                                                    color="default"
+                                                    sx={{ 
+                                                        fontSize: '0.75rem',
+                                                        color: 'text.secondary',
+                                                        borderColor: 'divider'
+                                                    }}
+                                                />
+                                            )}
                                         </Stack>
 
                                         <Typography variant="body2" color="text.secondary">
@@ -584,6 +757,7 @@ export default function RoomPage() {
                         open={invoiceDialogOpen}
                         onClose={handleCloseInvoiceDialog}
                         roomId={selectedRoomId}
+                        onDialogClose={reloadRooms} // Add this line to trigger refresh
                     />
                 )}
             </Container>
