@@ -66,6 +66,11 @@ export const getById = query({
         return {
             ...room,
             renter: renterInfo,
+            // Map name to fullname for frontend compatibility in renters array
+            renters: (room.renters || []).map(r => ({
+                ...r,
+                fullname: r.name || r.fullname, // Ensure fullname exists for frontend
+            })),
         };
     },
 });
@@ -423,7 +428,7 @@ export const getRentersByRoomId = query({
                 const user = await ctx.db.get(currentRenter.userId);
                 if (user) {
                     const representative = {
-                        fullname: user.name || "Unknown",
+                        fullname: user.name || "Unknown", // Keep fullname for frontend compatibility
                         email: user.email,
                         phone: user.phone || "",
                         birthDate: user.birthDate || "",
@@ -463,15 +468,23 @@ export const addRenterToRoom = mutation({
         if (isDuplicate) {
             throw new Error("Người thuê với số điện thoại hoặc email này đã tồn tại");
         }
+
+        // Map fullname to name to match database schema
+        const renterToSave = {
+            ...renter,
+            name: renter.fullname, // Convert fullname to name for database
+        };
+        delete renterToSave.fullname; // Remove fullname field
+
         await ctx.db.patch(roomId, {
-            renters: [...currentRenters, renter],
+            renters: [...currentRenters, renterToSave],
             status: room.status === "vacant" ? "occupied" : room.status,
         });
 
         return {
             success: true,
             message: "Đã thêm người thuê thành công",
-            renter,
+            renter: renterToSave,
         };
     },
 });
