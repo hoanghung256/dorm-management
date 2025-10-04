@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import {
     ListItemText,
+    ListItem,
+    ListItemAvatar,
     Chip,
     Grid,
     List,
@@ -35,6 +37,7 @@ import {
     Elevator as ElevatorIcon,
     Person as PersonIcon,
     PersonAdd as PersonAddIcon,
+    GroupAdd as GroupAddIcon,
 } from "@mui/icons-material";
 import {
     Email as EmailIcon,
@@ -52,7 +55,6 @@ import MenuItem from "@mui/material/MenuItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PersonOffIcon from "@mui/icons-material/PersonOff";
-import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import { CardHeader } from "@mui/material";
 import toast from "react-hot-toast";
 
@@ -137,16 +139,19 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
 
                 const representativeEmail = roomData?.renter?.user?.email || null;
 
-                // Gắn cờ isRepresentative bằng email
+                // Map backend name → fullname và gắn cờ isRepresentative
                 let mergedRenters = (rentersData || []).map((r) => ({
                     ...r,
+                    fullname: r.name || r.fullname, // Backend returns 'name', map to 'fullname'
                     isRepresentative: representativeEmail && r.email === representativeEmail,
                 }));
 
                 // Nếu đại diện chưa có trong danh sách renters → push thêm
                 if (representativeEmail && !mergedRenters.some((r) => r.email === representativeEmail)) {
+                    const representative = roomData.renter.user;
                     mergedRenters.push({
-                        ...roomData.renter.user,
+                        ...representative,
+                        fullname: representative.name || representative.fullname, // Map name → fullname
                         isRepresentative: true,
                     });
                 }
@@ -937,96 +942,6 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
         );
     };
 
-    // Renter Management Component
-    const RenterManagement = ({ roomDetails }) => {
-        return (
-            <Box>
-                <Typography variant="h6" gutterBottom fontWeight="600" sx={{ mb: 2 }}>
-                    Thông tin người thuê
-                </Typography>
-
-                {roomDetails?.renter?.user ? (
-                    <Card>
-                        <CardContent>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
-                                <Avatar
-                                    sx={{
-                                        bgcolor: "primary.main",
-                                        width: 64,
-                                        height: 64,
-                                        fontSize: "1.5rem",
-                                    }}
-                                >
-                                    {roomDetails.renter.user.name?.charAt(0).toUpperCase() || "U"}
-                                </Avatar>
-                                <Box>
-                                    <Typography variant="h6" fontWeight="600">
-                                        {roomDetails.renter.user.name || "Chưa có tên"}
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary">
-                                        ID: {roomDetails.renter.user.id}
-                                    </Typography>
-                                </Box>
-                            </Box>
-
-                            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 2 }}>
-                                <Box>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        📞 Số điện thoại
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {roomDetails.renter.user.phone || "Chưa có thông tin"}
-                                    </Typography>
-                                </Box>
-
-                                <Box>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        ✉️ Email
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {roomDetails.renter.user.email || "Chưa có thông tin"}
-                                    </Typography>
-                                </Box>
-
-                                <Box>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        📅 Ngày bắt đầu thuê
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {roomDetails.renter.startDate
-                                            ? new Date(roomDetails.renter.startDate).toLocaleDateString("vi-VN")
-                                            : "Chưa có thông tin"}
-                                    </Typography>
-                                </Box>
-
-                                <Box>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                        💰 Tiền cọc
-                                    </Typography>
-                                    <Typography variant="body1">
-                                        {roomDetails.renter.deposit
-                                            ? `${roomDetails.renter.deposit.toLocaleString("vi-VN")} VNĐ`
-                                            : "Chưa có thông tin"}
-                                    </Typography>
-                                </Box>
-                            </Box>
-                        </CardContent>
-                    </Card>
-                ) : (
-                    <Paper sx={{ p: 4, textAlign: "center", bgcolor: "grey.50" }}>
-                        <PersonIcon sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
-                        <Typography variant="h6" color="text.secondary">
-                            Phòng chưa có người thuê
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            Hãy thêm người thuê để quản lý thông tin và tạo hóa đơn
-                        </Typography>
-                    </Paper>
-                )}
-            </Box>
-        );
-    };
-
     // Thêm RenterActionMenu component
     const RenterActionMenu = ({ renter, roomId, onDelete }) => {
         const [anchorEl, setAnchorEl] = useState(null);
@@ -1108,7 +1023,7 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
     const handleCloseAddRenterDialog = () => {
         setOpenAddRenterDialog(false);
         setNewRenterData({
-            fullname: "",
+            name: "",
             email: "",
             phone: "",
             birthDate: "",
@@ -1127,19 +1042,19 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
             // Refresh lại dữ liệu room
             const updatedRoom = await convexQueryOneTime(api.functions.rooms.getById, { roomId });
 
-            // Chuẩn hóa danh sách renters - FIX HERE
+            // Chuẩn hóa danh sách renters - Backend đã trả về fullname
             let rentersList = [
-                // Renters thường: map fullname → name để thống nhất
+                // Renters thường: backend đã map name → fullname
                 ...(updatedRoom.renters || []).map((renter) => ({
                     ...renter,
-                    name: renter.fullname, // Map fullname → name
                     isRepresentative: false,
                 })),
-                // Đại diện: giữ nguyên field name
+                // Đại diện: giữ nguyên field name từ user
                 ...(updatedRoom.renter
                     ? [
                           {
                               ...updatedRoom.renter.user,
+                              fullname: updatedRoom.renter.user.name, // Map name → fullname cho UI
                               isRepresentative: true,
                           },
                       ]
@@ -1153,6 +1068,7 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
 
                 rentersList.unshift({
                     ...updatedRoom.renter.user,
+                    fullname: updatedRoom.renter.user.name, // Map name → fullname cho UI
                     isRepresentative: true,
                 });
             }
@@ -1299,10 +1215,6 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                                 setRoomAmenities={setRoomAmenities}
                             />
                         </TabPanel>
-
-                        <TabPanel value={activeTab} index={2}>
-                            <RenterManagement roomDetails={roomDetails} />
-                        </TabPanel>
                     </>
                 )}
                 <TabPanel value={activeTab} index={2}>
@@ -1368,7 +1280,20 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                             }}
                         >
                             <Grid container spacing={2} p={1}>
-                                {renters.map((renter, index) => (
+                                {renters.length === 0 ? (
+                                    <Grid item xs={12}>
+                                        <Paper sx={{ p: 4, textAlign: "center", bgcolor: "grey.50" }}>
+                                            <PersonIcon sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
+                                            <Typography variant="h6" color="text.secondary">
+                                                Phòng chưa có người thuê
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Hãy thêm người thuê để quản lý thông tin
+                                            </Typography>
+                                        </Paper>
+                                    </Grid>
+                                ) : (
+                                    renters.map((renter, index) => (
                                     <Grid item xs={12} sm={6} md={4} key={index}>
                                         <Card
                                             sx={{
@@ -1470,7 +1395,8 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                                             </Box>
                                         </Card>
                                     </Grid>
-                                ))}
+                                    ))
+                                )}
                             </Grid>
                         </Box>
                     </Box>

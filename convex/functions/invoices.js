@@ -132,6 +132,7 @@ export const create = mutation({
 
         const invoiceData = {
             roomId,
+            dormId: room.dormId, // Thêm dormId từ room data
             period,
             totalAmount,
             currency,
