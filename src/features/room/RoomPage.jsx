@@ -22,10 +22,10 @@ import {
     Breadcrumbs,
     Link,
 } from "@mui/material";
-import { 
-    Add, 
-    MoreVert, 
-    EditOutlined, 
+import {
+    Add,
+    MoreVert,
+    EditOutlined,
     DeleteOutline,
     Home as HomeIcon,
     NavigateNext as NavigateNextIcon,
@@ -188,7 +188,7 @@ export default function RoomPage() {
                 }
 
                 // Load room amenities
-                const roomIds = data.map(room => room._id);
+                const roomIds = data.map((room) => room._id);
                 console.log("Loading amenities for rooms:", roomIds);
                 console.log("Available API functions:", api.functions.amentities);
                 if (roomIds.length > 0) {
@@ -196,14 +196,16 @@ export default function RoomPage() {
                         roomIds.map(async (roomId) => {
                             try {
                                 console.log(`Calling listByRoom for room ${roomId}`);
-                                const result = await convexQueryOneTime(api.functions.amentities.listByRoom, { roomId });
+                                const result = await convexQueryOneTime(api.functions.amentities.listByRoom, {
+                                    roomId,
+                                });
                                 console.log(`Result for room ${roomId}:`, result);
                                 return result;
                             } catch (error) {
                                 console.error(`Error loading amenities for room ${roomId}:`, error);
                                 throw error;
                             }
-                        })
+                        }),
                     );
                     const amenityMap = {};
                     amenityResults.forEach((res, idx) => {
@@ -286,13 +288,11 @@ export default function RoomPage() {
             }
 
             // Load room amenities
-            const roomIds = data.map(room => room._id);
+            const roomIds = data.map((room) => room._id);
             console.log("Reloading amenities for rooms:", roomIds);
             if (roomIds.length > 0) {
                 const amenityResults = await Promise.allSettled(
-                    roomIds.map(roomId =>
-                        convexQueryOneTime(api.functions.amentities.listByRoom, { roomId })
-                    )
+                    roomIds.map((roomId) => convexQueryOneTime(api.functions.amentities.listByRoom, { roomId })),
                 );
                 const amenityMap = {};
                 amenityResults.forEach((res, idx) => {
@@ -369,29 +369,25 @@ export default function RoomPage() {
 
             <Container sx={{ py: 3 }}>
                 {/* Breadcrumb Navigation */}
-                <Breadcrumbs 
-                    separator={<NavigateNextIcon fontSize="small" />} 
-                    aria-label="breadcrumb"
-                    sx={{ mb: 3 }}
-                >
-                    <Link 
-                        underline="hover" 
-                        color="inherit" 
+                <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} aria-label="breadcrumb" sx={{ mb: 3 }}>
+                    <Link
+                        underline="hover"
+                        color="inherit"
                         component="button"
-                        onClick={() => navigate('/landlord/dorms')}
+                        onClick={() => navigate("/landlord/dorms")}
                         sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            '&:hover': {
-                                color: 'primary.main',
-                            }
+                            display: "flex",
+                            alignItems: "center",
+                            "&:hover": {
+                                color: "primary.main",
+                            },
                         }}
                     >
                         <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
                         Danh sách Nhà Trọ
                     </Link>
                     <Typography color="text.primary" sx={{ fontWeight: 500 }}>
-                        {routeDormId ? `Phòng của nhà trọ` : 'Tất cả phòng'}
+                        {routeDormId ? `Phòng của nhà trọ` : "Tất cả phòng"}
                     </Typography>
                 </Breadcrumbs>
 
@@ -421,8 +417,8 @@ export default function RoomPage() {
                             Quản lí phòng trọ và căn hộ của bạn
                         </Typography>
                     </Box>
-                    <Button 
-                        onClick={() => handleOpenCreate()} 
+                    <Button
+                        onClick={() => handleOpenCreate()}
                         startIcon={<Add />}
                         variant="contained"
                         sx={{
@@ -433,7 +429,7 @@ export default function RoomPage() {
                             "&:hover": {
                                 backgroundColor: "#6a1b9a",
                                 boxShadow: "0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23)",
-                            }
+                            },
                         }}
                     >
                         Thêm phòng
@@ -644,41 +640,45 @@ export default function RoomPage() {
 
                                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                                             {(roomAmenities[roomItem._id] || [])
-                                                .filter(amenity => amenity.enabled !== false) // Only show enabled amenities
+                                                .filter((amenity) => amenity.enabled !== false) // Only show enabled amenities
                                                 .slice(0, 3)
                                                 .map((amenity, index) => (
-                                                <Chip 
-                                                    key={index}
-                                                    size="small" 
-                                                    label={`${getAmenityIcon(amenity.details?.type)} ${amenity.details?.name || 'Tiện ích'}`}
-                                                    variant="outlined"
-                                                    sx={{ 
-                                                        fontSize: '0.75rem',
-                                                        '& .MuiChip-label': {
-                                                            px: 1
-                                                        }
-                                                    }}
-                                                />
-                                            ))}
-                                            {(roomAmenities[roomItem._id] || []).filter(amenity => amenity.enabled !== false).length > 3 && (
-                                                <Chip 
-                                                    size="small" 
-                                                    label={`+${(roomAmenities[roomItem._id] || []).filter(amenity => amenity.enabled !== false).length - 3} khác`}
+                                                    <Chip
+                                                        key={index}
+                                                        size="small"
+                                                        label={`${getAmenityIcon(amenity.details?.type)} ${amenity.details?.name || "Tiện ích"}`}
+                                                        variant="outlined"
+                                                        sx={{
+                                                            fontSize: "0.75rem",
+                                                            "& .MuiChip-label": {
+                                                                px: 1,
+                                                            },
+                                                        }}
+                                                    />
+                                                ))}
+                                            {(roomAmenities[roomItem._id] || []).filter(
+                                                (amenity) => amenity.enabled !== false,
+                                            ).length > 3 && (
+                                                <Chip
+                                                    size="small"
+                                                    label={`+${(roomAmenities[roomItem._id] || []).filter((amenity) => amenity.enabled !== false).length - 3} khác`}
                                                     variant="outlined"
                                                     color="primary"
-                                                    sx={{ fontSize: '0.75rem' }}
+                                                    sx={{ fontSize: "0.75rem" }}
                                                 />
                                             )}
-                                            {(roomAmenities[roomItem._id] || []).filter(amenity => amenity.enabled !== false).length === 0 && (
-                                                <Chip 
-                                                    size="small" 
+                                            {(roomAmenities[roomItem._id] || []).filter(
+                                                (amenity) => amenity.enabled !== false,
+                                            ).length === 0 && (
+                                                <Chip
+                                                    size="small"
                                                     label="Chưa có tiện ích"
                                                     variant="outlined"
                                                     color="default"
-                                                    sx={{ 
-                                                        fontSize: '0.75rem',
-                                                        color: 'text.secondary',
-                                                        borderColor: 'divider'
+                                                    sx={{
+                                                        fontSize: "0.75rem",
+                                                        color: "text.secondary",
+                                                        borderColor: "divider",
                                                     }}
                                                 />
                                             )}

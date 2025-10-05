@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { useParams } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import {
     Container,
     Box,
@@ -18,11 +20,13 @@ import {
     DialogContent,
     DialogActions,
     IconButton,
+    Breadcrumbs,
+    Link,
 } from "@mui/material";
-import { useParams } from "react-router-dom";
+import { FileDownload, Close, Visibility, NavigateNext, Home } from "@mui/icons-material";
+
 import { convexQueryOneTime, convexMutation } from "../../services/convexClient";
 import { api } from "../../../convex/_generated/api";
-import { FileDownload, Close, Visibility } from "@mui/icons-material";
 import SearchInvoiceForm from "./SearchInvoiceForm";
 import ConfirmModal from "../../components/ConfirmModal";
 import FirebaseImg from "../../components/FirebaseImg";
@@ -52,6 +56,7 @@ function parseMonthLabel(invoice) {
 
 export default function DormInvoiceReport() {
     const { dormId } = useParams();
+    const navigate = useNavigate();
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -101,7 +106,6 @@ export default function DormInvoiceReport() {
     const updateStatus = async (invoiceId, newStatus) => {
         const originalInvoice = invoices.find((inv) => inv._id === invoiceId);
 
-        // Optimistic update
         setInvoices((prev) => prev.map((i) => (i._id === invoiceId ? { ...i, status: newStatus } : i)));
 
         try {
@@ -112,7 +116,6 @@ export default function DormInvoiceReport() {
 
             if (!result.ok) throw new Error(result.message || "Update failed");
         } catch (e) {
-            // Rollback on error
             setInvoices((prev) =>
                 prev.map((i) => (i._id === invoiceId ? { ...i, status: originalInvoice?.status || "unpaid" } : i)),
             );
@@ -123,8 +126,13 @@ export default function DormInvoiceReport() {
     const handleStatusChange = (invoice, newStatus) => {
         if (invoice.status === newStatus) return;
 
-        if ((newStatus === "paid" || newStatus === "unpaid") && !invoice.evidenceUrls) {
-            alert("Cần có ảnh bằng chứng trước khi thay đổi trạng thái thanh toán!");
+        if (newStatus === "paid" && !invoice.evidenceUrls) {
+            alert("Cần có ảnh bằng chứng trước khi thay đổi trạng thái sang 'Đã thanh toán'!");
+            return;
+        }
+
+        if (newStatus === "pending") {
+            alert("Không thể thay đổi trạng thái sang 'Đang chờ'.");
             return;
         }
 
@@ -217,6 +225,28 @@ export default function DormInvoiceReport() {
 
     return (
         <Container sx={{ py: 3 }}>
+            {/* Breadcrumb Navigation */}
+            <Breadcrumbs separator={<NavigateNext fontSize="small" />} aria-label="breadcrumb" sx={{ mb: 3 }}>
+                <Link
+                    underline="hover"
+                    color="inherit"
+                    component="button"
+                    onClick={() => navigate("/landlord/invoices")}
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        "&:hover": {
+                            color: "primary.main",
+                        },
+                    }}
+                >
+                    <Home sx={{ mr: 0.5 }} fontSize="inherit" />
+                    Danh sách Nhà Trọ
+                </Link>
+                <Typography color="text.primary" sx={{ fontWeight: 500 }}>
+                    {dormId ? `Báo cáo hóa đơn trọ` : "Tất cả hóa đơn"}
+                </Typography>
+            </Breadcrumbs>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
                 <Box>
                     <Typography variant="h4" fontWeight="bold">
@@ -323,13 +353,16 @@ export default function DormInvoiceReport() {
                                             onChange={(e) => handleStatusChange(inv, e.target.value)}
                                             sx={{ minWidth: 140 }}
                                         >
-                                            <MenuItem value="pending" disabled={inv.evidenceUrls}>
+                                            <MenuItem value="pending" disabled>
                                                 Đang chờ
                                             </MenuItem>
+                                            <MenuItem value="unpaid" disabled={!inv.evidenceUrls}>
+                                                Chưa thanh toán
+                                            </MenuItem>
 
-                                            <MenuItem value="unpaid">Chưa thanh toán</MenuItem>
-
-                                            <MenuItem value="paid">Đã thanh toán</MenuItem>
+                                            <MenuItem value="paid" disabled={!inv.evidenceUrls}>
+                                                Đã thanh toán
+                                            </MenuItem>
                                         </Select>
                                     </TableCell>
 
