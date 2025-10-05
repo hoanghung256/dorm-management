@@ -427,14 +427,17 @@ export default function DormInvoiceReport() {
                     </IconButton>
                 </DialogActions>
                 <DialogContent sx={{ p: 0, display: "flex", justifyContent: "center", alignItems: "center" }}>
-                    {imgSrc && <FirebaseImg fileName={imgSrc} />}
-                    <Typography
-                        variant="body1"
-                        color="text.secondary"
-                        sx={{ display: "none", textAlign: "center", p: 4 }}
-                    >
-                        Không thể tải ảnh
-                    </Typography>
+                    {imgSrc ? (
+                        <img
+                            src={imgSrc}
+                            alt="Evidence"
+                            style={{ maxWidth: "100%", maxHeight: "80vh", objectFit: "contain" }}
+                        />
+                    ) : (
+                        <Typography variant="body1" color="text.secondary" sx={{ p: 4 }}>
+                            Không thể tải ảnh
+                        </Typography>
+                    )}
                 </DialogContent>
             </Dialog>
 

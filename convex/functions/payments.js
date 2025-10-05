@@ -28,11 +28,10 @@ export const submitEvidence = mutation({
             renterId,
             files,
             submittedAt: now,
-            status: "submitted",
+            status: "pending",
         });
-        // Với schema hiện tại, trường evidenceUrls chỉ lưu 1 URL => lấy URL đầu tiên nếu có
         const firstUrl = files[0]?.url || null;
-        await ctx.db.patch(invoiceId, { status: "submitted", evidenceUrls: firstUrl });
+        await ctx.db.patch(invoiceId, { status: "pending", evidenceUrls: firstUrl });
         return id;
     },
 });
