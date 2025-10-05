@@ -121,63 +121,6 @@ export const getByIdForDorm = query({
     },
 });
 
-export const listByDorm = query({
-    args: { dormId: v.id("dorms") },
-    handler: async (ctx, { dormId }) => {
-        const invoices = await ctx.db
-            .query("invoices")
-            .withIndex("by_dorm", (q) => q.eq("dormId", dormId))
-            .collect();
-
-        invoices.sort((a, b) => (b.period?.start ?? 0) - (a.period?.start ?? 0));
-
-        return await enrich(ctx, invoices);
-    },
-});
-
-
-export const listByRoom = query({
-    args: { roomId: v.id("rooms") },
-    handler: async (ctx, { roomId }) => {
-        const invoices = await ctx.db
-            .query("invoices")
-            .withIndex("by_room", (q) => q.eq("roomId", roomId))
-            .collect();
-
-        invoices.sort((a, b) => (b.period?.start ?? 0) - (a.period?.start ?? 0));
-        return invoices;
-    },
-});
-
-
-export const listByDormAndPeriod = query({
-    args: {
-        dormId: v.id("dorms"),
-        period: v.object({ start: v.number(), end: v.number() }),
-    },
-    handler: async (ctx, { dormId, period }) => {
-        const all = await ctx.db
-            .query("invoices")
-            .withIndex("by_dorm", (q) => q.eq("dormId", dormId))
-            .collect();
-
-        return all.filter((i) => i.period?.start === period.start && i.period?.end === period.end);
-    },
-});
-
-
-export const getByIdForDorm = query({
-    args: { invoiceId: v.id("invoices"), dormId: v.id("dorms") },
-    handler: async (ctx, { invoiceId, dormId }) => {
-        const inv = await ctx.db.get(invoiceId);
-        if (!inv) return null;
-        if (inv.dormId !== dormId) return null;
-        const [enriched] = await enrich(ctx, [inv]);
-        return enriched;
-    },
-});
-
-
 export const create = mutation({
     args: {
         roomId: v.id("rooms"),
@@ -290,25 +233,3 @@ export const remove = mutation({
         return { ok: true };
     },
 });
-
-export const updateEvidence = mutation({
-    args: { invoiceId: v.id("invoices"), evidenceUrls: v.optional(v.string()) },
-    handler: async (ctx, { invoiceId, evidenceUrls }) => {
-        const inv = await ctx.db.get(invoiceId);
-        if (!inv) throw new Error("Invoice not found");
-        await ctx.db.patch(invoiceId, { evidenceUrls: evidenceUrls || null });
-        return { ok: true };
-    },
-});
-
-
-export const remove = mutation({
-    args: { invoiceId: v.id("invoices") },
-    handler: async (ctx, { invoiceId }) => {
-        const inv = await ctx.db.get(invoiceId);
-        if (!inv) throw new Error("Invoice not found");
-        await ctx.db.delete(invoiceId);
-        return { ok: true };
-    },
-});
-
