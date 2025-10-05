@@ -188,9 +188,7 @@ export const updateStatus = mutation({
         invoiceId: v.id("invoices"),
         status: v.union(
             v.literal("pending"),
-            v.literal("submitted"),
-            v.literal("approved"),
-            v.literal("rejected"),
+            v.literal("unpaid"),
             v.literal("paid"),
         ),
     },
