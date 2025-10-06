@@ -208,7 +208,7 @@ function ManageDormPage() {
                                             {d.name}
                                         </Typography>
 
-                                        <Box onClick={(e) => e.stopPropagation()}>
+                                        <Box style={{ cursor: "pointer" }} onClick={(e) => e.stopPropagation()}>
                                             <ActionMenu
                                                 d={d}
                                                 openEditAmenities={openEditAmenities}
@@ -217,7 +217,7 @@ function ManageDormPage() {
                                             />
                                         </Box>
                                     </Stack>
-                                    
+
                                     <Divider />
 
                                     {/* Content */}
@@ -233,7 +233,9 @@ function ManageDormPage() {
                                                 >
                                                     📍
                                                 </Box>
-                                                <Typography variant="body1">{d.address || "Chưa có địa chỉ"}</Typography>
+                                                <Typography variant="body1">
+                                                    {d.address || "Chưa có địa chỉ"}
+                                                </Typography>
                                             </Stack>
                                         </Stack>
 

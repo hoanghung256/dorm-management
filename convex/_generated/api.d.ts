@@ -27,7 +27,6 @@ import type * as functions_rooms from "../functions/rooms.js";
 import type * as functions_subscriptions from "../functions/subscriptions.js";
 import type * as functions_sync from "../functions/sync.js";
 import type * as functions_syncAmenities from "../functions/syncAmenities.js";
-import type * as functions_testResend from "../functions/testResend.js";
 import type * as functions_users from "../functions/users.js";
 
 /**
@@ -53,7 +52,6 @@ declare const fullApi: ApiFromModules<{
   "functions/subscriptions": typeof functions_subscriptions;
   "functions/sync": typeof functions_sync;
   "functions/syncAmenities": typeof functions_syncAmenities;
-  "functions/testResend": typeof functions_testResend;
   "functions/users": typeof functions_users;
 }>;
 export declare const api: FilterApi<

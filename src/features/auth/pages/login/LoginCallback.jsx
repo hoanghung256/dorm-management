@@ -70,12 +70,32 @@ function LoginCallback() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
+
         if (!form.name || !form.email || !form.role) {
             setError("Vui lòng nhập đầy đủ các trường bắt buộc.");
             return;
         }
+
+        if (form.birthDate) {
+            const birthDate = new Date(form.birthDate);
+            const today = new Date();
+
+            const age = today.getFullYear() - birthDate.getFullYear();
+            const hasHadBirthdayThisYear =
+                today.getMonth() > birthDate.getMonth() ||
+                (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+
+            const actualAge = hasHadBirthdayThisYear ? age : age - 1;
+
+            if (actualAge < 18) {
+                setError("Người dùng phải từ 18 tuổi trở lên.");
+                return;
+            }
+        }
+
         if (!user) return;
         setSubmitting(true);
+
         try {
             await convexMutation(api.functions.users.createUser, {
                 clerkUserId: user.id,
@@ -86,6 +106,7 @@ function LoginCallback() {
                 phone: form.phone,
                 hometown: form.hometown,
             });
+
             await checkIfUserExists(user.id);
         } catch (e) {
             setError("Tạo người dùng thất bại.");
