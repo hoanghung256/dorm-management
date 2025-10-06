@@ -55,7 +55,7 @@ import MenuItem from "@mui/material/MenuItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PersonOffIcon from "@mui/icons-material/PersonOff";
-import { CardHeader } from "@mui/material";
+import { CardHeader, Tooltip } from "@mui/material";
 import toast from "react-hot-toast";
 import { formatNumber } from "../../components/CurrencyTextField.jsx";
 
@@ -67,6 +67,7 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
     const [roomAmenities, setRoomAmenities] = useState(null);
     const [amenityToggles, setAmenityToggles] = useState({}); // Track toggle state for amenities
     const [loading, setLoading] = useState(false);
+   
 
     // Confirm modal states
     const [showConfirm, setShowConfirm] = useState(false);
@@ -94,6 +95,9 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
 
     // Add state for renters list
     const [renters, setRenters] = useState([]);
+
+    // Add state for form validation errors
+    const [renterFormErrors, setRenterFormErrors] = useState({});
 
     useEffect(() => {
         console.log("de", roomDetails);
@@ -439,6 +443,14 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
     };
 
     const handleOpenDeleteConfirm = (renter) => {
+        // Kiểm tra nếu đây là người đại diện (so sánh bằng email để chắc chắn)
+        const isRepresentative = roomDetails?.renter?.user?.email === renter.email;
+        
+        if (isRepresentative) {
+            toast.error("❌ Không thể xóa người đại diện!");
+            return;
+        }
+        
         setSelectedRenter(renter);
         setShowDeleteConfirm(true);
     };
@@ -450,21 +462,23 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
     const handleConfirmDelete = async () => {
         if (!selectedRenter) return;
 
+        // Kiểm tra và ngăn xóa người đại diện (so sánh bằng email để chắc chắn)
+        const isRepresentative = roomDetails?.renter?.user?.email === selectedRenter.email;
+        
+        if (isRepresentative) {
+            toast.error("❌ Không thể xóa người đại diện!");
+            handleCloseDeleteConfirm();
+            return;
+        }
+
         try {
-            // Xóa renter
+            // Xóa renter (chỉ những người KHÔNG phải đại diện)
             await convexMutation(api.functions.rooms.removeRenterFromRoom, {
                 roomId,
                 email: selectedRenter.email,
             });
 
-            // Nếu là đại diện thì clear luôn
-            if (roomDetails?.renter?.user?.email === selectedRenter.email) {
-                await convexMutation(api.functions.renters.unassignFromRoom, {
-                    roomId,
-                    userId: roomDetails.renter.user._id,
-                });
-            }
-
+            // Refresh room data
             const updatedRoom = await convexQueryOneTime(api.functions.rooms.getById, { roomId });
             let rentersList = updatedRoom.renters || [];
             if (updatedRoom.renter?.user) {
@@ -1012,12 +1026,14 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
 
     const handleAddRenterDialog = () => {
         setOpenAddRenterDialog(true);
+        setRenterFormErrors({}); // Clear any previous errors
     };
 
     const handleCloseAddRenterDialog = () => {
         setOpenAddRenterDialog(false);
+        setRenterFormErrors({}); // Clear errors when closing
         setNewRenterData({
-            name: "",
+            fullname: "", // Fix field name to fullname
             email: "",
             phone: "",
             birthDate: "",
@@ -1025,7 +1041,44 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
         });
     };
 
+    // Validation function for new renter form
+    const validateRenterForm = () => {
+        const errors = {};
+        
+        if (!newRenterData.fullname?.trim()) {
+            errors.fullname = "Vui lòng nhập họ tên";
+        }
+        
+        if (!newRenterData.email?.trim()) {
+            errors.email = "Vui lòng nhập email";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newRenterData.email)) {
+            errors.email = "Email không hợp lệ";
+        }
+        
+        if (!newRenterData.phone?.trim()) {
+            errors.phone = "Vui lòng nhập số điện thoại";
+        } else if (!/^[0-9]{10,11}$/.test(newRenterData.phone.replace(/\s/g, ''))) {
+            errors.phone = "Số điện thoại không hợp lệ";
+        }
+        
+        if (!newRenterData.birthDate?.trim()) {
+            errors.birthDate = "Vui lòng nhập ngày sinh";
+        }
+        
+        if (!newRenterData.hometown?.trim()) {
+            errors.hometown = "Vui lòng nhập quê quán";
+        }
+        
+        setRenterFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
     const handleSubmitNewRenter = async () => {
+        // Validate form first
+        if (!validateRenterForm()) {
+            return; // Stop execution if validation fails
+        }
+
         try {
             // Gọi API thêm renter
             await convexMutation(api.functions.rooms.addRenterToRoom, {
@@ -1236,18 +1289,32 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                                 >
                                     Thêm người đại diện
                                 </Button>
-                                <Button
-                                    variant="outlined"
-                                    startIcon={<GroupAddIcon />}
-                                    onClick={handleAddRenterDialog}
-                                    sx={{
-                                        borderColor: "primary.main",
-                                        color: "primary.main",
-                                        "&:hover": { bgcolor: "primary.50" },
-                                    }}
+                                <Tooltip 
+                                    title={!roomDetails?.renter?.user ? "Vui lòng thêm người đại diện trước" : ""}
+                                    arrow
                                 >
-                                    Thêm người thuê
-                                </Button>
+                                    <span>
+                                        <Button
+                                            variant="outlined"
+                                            startIcon={<GroupAddIcon />}
+                                            onClick={handleAddRenterDialog}
+                                            disabled={!roomDetails?.renter?.user} // Disable khi chưa có người đại diện
+                                            sx={{
+                                                borderColor: !roomDetails?.renter?.user ? "grey.400" : "primary.main",
+                                                color: !roomDetails?.renter?.user ? "grey.400" : "primary.main",
+                                                "&:hover": { 
+                                                    bgcolor: !roomDetails?.renter?.user ? "transparent" : "primary.50" 
+                                                },
+                                                "&.Mui-disabled": {
+                                                    borderColor: "grey.300",
+                                                    color: "grey.400",
+                                                },
+                                            }}
+                                        >
+                                            Thêm người thuê
+                                        </Button>
+                                    </span>
+                                </Tooltip>
                             </Box>
                         </Box>
 
@@ -1279,10 +1346,16 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                                         <Paper sx={{ p: 4, textAlign: "center", bgcolor: "grey.50" }}>
                                             <PersonIcon sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
                                             <Typography variant="h6" color="text.secondary">
-                                                Phòng chưa có người thuê
+                                                {!roomDetails?.renter?.user 
+                                                    ? "Phòng chưa có người đại diện" 
+                                                    : "Phòng chưa có người thuê thêm"
+                                                }
                                             </Typography>
                                             <Typography variant="body2" color="text.secondary">
-                                                Hãy thêm người thuê để quản lý thông tin
+                                                {!roomDetails?.renter?.user 
+                                                    ? "Vui lòng thêm người đại diện trước khi thêm người thuê khác"
+                                                    : "Hãy thêm người thuê để quản lý thông tin"
+                                                }
                                             </Typography>
                                         </Paper>
                                     </Grid>
@@ -1620,7 +1693,7 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                         {searchResults.map((user) => (
                             <ListItem
                                 key={user._id}
-                                button
+                                component="button"
                                 onClick={() => handleRenterSelect(user)}
                                 sx={{
                                     "&:hover": {
@@ -1686,75 +1759,134 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                             fullWidth
                             label="Họ và tên"
                             value={newRenterData.fullname}
-                            onChange={(e) =>
+                            onChange={(e) => {
                                 setNewRenterData((prev) => ({
                                     ...prev,
                                     fullname: e.target.value,
-                                }))
-                            }
+                                }));
+                                // Clear error when user starts typing
+                                if (renterFormErrors.fullname) {
+                                    setRenterFormErrors(prev => ({
+                                        ...prev,
+                                        fullname: undefined
+                                    }));
+                                }
+                            }}
                             required
+                            error={!!renterFormErrors.fullname}
+                            helperText={renterFormErrors.fullname}
                         />
                         <TextField
                             fullWidth
                             label="Email"
                             type="email"
                             value={newRenterData.email}
-                            onChange={(e) =>
+                            onChange={(e) => {
                                 setNewRenterData((prev) => ({
                                     ...prev,
                                     email: e.target.value,
-                                }))
-                            }
+                                }));
+                                // Clear error when user starts typing
+                                if (renterFormErrors.email) {
+                                    setRenterFormErrors(prev => ({
+                                        ...prev,
+                                        email: undefined
+                                    }));
+                                }
+                            }}
+                            required
+                            error={!!renterFormErrors.email}
+                            helperText={renterFormErrors.email}
                         />
                         <TextField
                             fullWidth
                             label="Số điện thoại"
                             value={newRenterData.phone}
-                            onChange={(e) =>
+                            onChange={(e) => {
                                 setNewRenterData((prev) => ({
                                     ...prev,
                                     phone: e.target.value,
-                                }))
-                            }
+                                }));
+                                // Clear error when user starts typing
+                                if (renterFormErrors.phone) {
+                                    setRenterFormErrors(prev => ({
+                                        ...prev,
+                                        phone: undefined
+                                    }));
+                                }
+                            }}
                             required
+                            error={!!renterFormErrors.phone}
+                            helperText={renterFormErrors.phone}
                         />
                         <TextField
                             fullWidth
                             label="Ngày sinh"
                             type="date"
                             value={newRenterData.birthDate}
-                            onChange={(e) =>
+                            onChange={(e) => {
                                 setNewRenterData((prev) => ({
                                     ...prev,
                                     birthDate: e.target.value,
-                                }))
-                            }
+                                }));
+                                // Clear error when user starts typing
+                                if (renterFormErrors.birthDate) {
+                                    setRenterFormErrors(prev => ({
+                                        ...prev,
+                                        birthDate: undefined
+                                    }));
+                                }
+                            }}
                             InputLabelProps={{ shrink: true }}
+                            required
+                            error={!!renterFormErrors.birthDate}
+                            helperText={renterFormErrors.birthDate}
                         />
                         <TextField
                             fullWidth
                             label="Quê quán"
                             value={newRenterData.hometown}
-                            onChange={(e) =>
+                            onChange={(e) => {
                                 setNewRenterData((prev) => ({
                                     ...prev,
                                     hometown: e.target.value,
-                                }))
-                            }
+                                }));
+                                // Clear error when user starts typing
+                                if (renterFormErrors.hometown) {
+                                    setRenterFormErrors(prev => ({
+                                        ...prev,
+                                        hometown: undefined
+                                    }));
+                                }
+                            }}
+                            required
+                            error={!!renterFormErrors.hometown}
+                            helperText={renterFormErrors.hometown}
                         />
                     </Box>
                 </DialogContent>
-                <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={handleCloseAddRenterDialog} color="inherit">
-                        Hủy
-                    </Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleSubmitNewRenter}
-                        disabled={!newRenterData.fullname || !newRenterData.phone}
-                    >
-                        Thêm người thuê
-                    </Button>
+                <DialogActions sx={{ p: 2, flexDirection: 'column', alignItems: 'stretch' }}>
+                    {/* Show validation summary message */}
+                    {Object.keys(renterFormErrors).length > 0 && (
+                        <Box sx={{ mb: 2, p: 2, bgcolor: 'error.light', borderRadius: 1 }}>
+                            <Typography variant="body2" color="error.dark" sx={{ fontWeight: 600 }}>
+                                ⚠️ Vui lòng điền đầy đủ thông tin bắt buộc
+                            </Typography>
+                        </Box>
+                    )}
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                        <Button onClick={handleCloseAddRenterDialog} color="inherit">
+                            Hủy
+                        </Button>
+                        <Button
+                            variant="contained"
+                            onClick={handleSubmitNewRenter}
+                            disabled={!newRenterData.fullname || !newRenterData.phone}
+                        >
+                            Thêm người thuê
+                        </Button>
+                    </Box>
                 </DialogActions>
             </Dialog>
         </Dialog>
