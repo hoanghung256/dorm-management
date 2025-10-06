@@ -254,6 +254,42 @@ export const syncAmenitiesForDorm = mutation({
     },
 });
 
+// Mutation to update lastUsedNumber for metered amenities after invoice creation
+export const updateLastUsedNumbers = mutation({
+    args: {
+        roomId: v.id("rooms"),
+        readings: v.array(
+            v.object({
+                amenityId: v.id("amenities"),
+                lastUsedNumber: v.number(),
+            })
+        ),
+    },
+    handler: async (ctx, args) => {
+        let updated = 0;
+        
+        for (const reading of args.readings) {
+            // Find the roomAmenity record
+            const roomAmenity = await ctx.db
+                .query("roomAmenities")
+                .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
+                .filter(q => q.eq(q.field("amenityId"), reading.amenityId))
+                .first();
+            
+            if (roomAmenity) {
+                // Update the lastUsedNumber
+                await ctx.db.patch(roomAmenity._id, {
+                    lastUsedNumber: reading.lastUsedNumber,
+                    month: new Date().getMonth(),
+                });
+                updated++;
+            }
+        }
+        
+        return { success: true, updated };
+    },
+});
+
 // Query to get all amenities for a specific room
 export const listByRoom = query({
     args: {
