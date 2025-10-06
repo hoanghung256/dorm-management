@@ -67,7 +67,7 @@ export const getById = query({
             ...room,
             renter: renterInfo,
             // Map name to fullname for frontend compatibility in renters array
-            renters: (room.renters || []).map(r => ({
+            renters: (room.renters || []).map((r) => ({
                 ...r,
                 fullname: r.name || r.fullname, // Ensure fullname exists for frontend
             })),
@@ -138,9 +138,9 @@ export const create = mutation({
             const existingLink = await ctx.db
                 .query("roomAmenities")
                 .withIndex("by_room", (q) => q.eq("roomId", roomId))
-                .filter(q => q.eq(q.field("amenityId"), amenity._id))
+                .filter((q) => q.eq(q.field("amenityId"), amenity._id))
                 .first();
-            
+
             if (!existingLink) {
                 await ctx.db.insert("roomAmenities", {
                     roomId: roomId,
@@ -243,7 +243,16 @@ export const remove = mutation({
     handler: async (ctx, { roomId }) => {
         const room = await ctx.db.get(roomId);
         if (!room) throw new Error("Room not found");
-        if (room.currentRenterId) throw new Error("Cannot delete an occupied room");
+        let renterCleared = false;
+        if (room.currentRenterId) {
+            const renter = await ctx.db.get(room.currentRenterId);
+            if (renter) {
+                if (renter.assignedRoomId === roomId) {
+                    await ctx.db.patch(renter._id, { assignedRoomId: undefined });
+                }
+                renterCleared = true;
+            }
+        }
         const invoice = await ctx.db
             .query("invoices")
             .withIndex("by_room", (q) => q.eq("roomId", roomId))
@@ -257,7 +266,7 @@ export const remove = mutation({
         for (const link of links) await ctx.db.delete(link._id);
 
         await ctx.db.delete(roomId);
-        return { ok: true };
+        return { ok: true, renterCleared };
     },
 });
 

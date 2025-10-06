@@ -1,7 +1,7 @@
 // convex/functions/invoices.js
-import { mutation, query } from "../_generated/server";
-import { v } from "convex/values";
-import { sendEmail } from "./email";
+import { internalAction, mutation, query } from "../_generated/server";
+import { ConvexError, v } from "convex/values";
+import { internal } from "../_generated/api";
 
 function calcTotal(baseItems) {
     // Sum price fields from prepared items
@@ -161,7 +161,7 @@ export const create = mutation({
 
         const invoiceData = {
             roomId,
-            dormId: room.dormId, // Thêm dormId từ room data
+            dormId: room.dormId,
             period,
             totalAmount,
             currency,
@@ -173,11 +173,42 @@ export const create = mutation({
         const startDate = new Date(period.start);
         const month = startDate.getUTCMonth() + 1;
         const year = startDate.getUTCFullYear();
+        // let isError = false;
+        let errorMessage = null;
+        let info = null;
+        try {
+            if (room.currentRenterId) {
+                const renterInfo = await ctx.db.get(room.currentRenterId);
+                console.log("Renter Info:", renterInfo);
+                if (renterInfo?.userId) {
+                    const userInfo = await ctx.db.get(renterInfo.userId);
+                    console.log("User Info:", userInfo);
+                    info = userInfo;
+                    if (userInfo?.email) {
+                        await ctx.scheduler.runAfter(0, internal.functions.email.sendInvoiceNotification, {
+                            invoiceId: invoiceId,
+                            roomCode: room.code,
+                            renterEmail: userInfo.email,
+                            renterName: userInfo?.name || "Quý khách",
+                            period: period,
+                            totalAmount: totalAmount,
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            errorMessage =
+                // Check whether the error is an application error
+                error instanceof ConvexError ? error.data.message : "Unexpected error occurred";
+            console.error("Error sending email:", error);
+        }
 
         return {
             success: true,
             invoiceId: invoiceId,
             isExisting: false,
+            errorMessage,
+            renterInfo: info,
             message: `Hóa đơn tháng ${month}/${year} đã được tạo thành công`,
         };
     },
