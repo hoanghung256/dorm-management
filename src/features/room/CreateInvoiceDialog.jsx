@@ -230,22 +230,22 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                         amenity.details?.unitFeeType === "metered"
                             ? `đ/${amenity.details?.unit}`
                             : amenity.details?.unitFeeType === "per_person"
-                              ? "đ/người"
-                              : "đ/tháng",
+                                ? "đ/người"
+                                : "đ/tháng",
                     hasInput: amenity.details?.unitFeeType !== "fixed",
                     inputLabel:
                         amenity.details?.unitFeeType === "metered"
                             ? amenity.details?.unit
                             : amenity.details?.unitFeeType === "per_person"
-                              ? "người"
-                              : "",
+                                ? "người"
+                                : "",
                     value: invoiceData[amenity.amenityId] ?? "",
                     subtext:
                         amenity.details?.unitFeeType === "metered"
                             ? `Đọc lần cuối: ${amenity.lastUsedNumber || 0} ${amenity.details?.unit}`
                             : amenity.details?.unitFeeType === "per_person"
-                              ? `Giá: ${amenity.details?.unitPrice?.toLocaleString()} đ/người`
-                              : `Giá cố định: ${amenity.details?.unitPrice?.toLocaleString()} đ/tháng`,
+                                ? `Giá: ${amenity.details?.unitPrice?.toLocaleString()} đ/người`
+                                : `Giá cố định: ${amenity.details?.unitPrice?.toLocaleString()} đ/tháng`,
                     color: getAmenityColor(amenity.details?.type),
                     isRoomRent: false,
                     // Add metered info
@@ -813,16 +813,16 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                                                         {amenity.details?.type === "electricity"
                                                             ? "Điện"
                                                             : amenity.details?.type === "water"
-                                                              ? "Nước"
-                                                              : amenity.details?.type === "internet"
-                                                                ? "Internet"
-                                                                : amenity.details?.type === "garbage"
-                                                                  ? "Rác"
-                                                                  : amenity.details?.type === "elevator"
-                                                                    ? "Thang máy"
-                                                                    : amenity.details?.type === "management"
-                                                                      ? "Quản lý"
-                                                                      : "Khác"}
+                                                                ? "Nước"
+                                                                : amenity.details?.type === "internet"
+                                                                    ? "Internet"
+                                                                    : amenity.details?.type === "garbage"
+                                                                        ? "Rác"
+                                                                        : amenity.details?.type === "elevator"
+                                                                            ? "Thang máy"
+                                                                            : amenity.details?.type === "management"
+                                                                                ? "Quản lý"
+                                                                                : "Khác"}
                                                     </Typography>
                                                 </Box>
                                             </Box>
@@ -872,8 +872,8 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                                                 {amenity.details?.unitFeeType === "metered"
                                                     ? "📊 Theo chỉ số"
                                                     : amenity.details?.unitFeeType === "per_person"
-                                                      ? "� Theo người"
-                                                      : "💰 Giá cố định"}
+                                                        ? "� Theo người"
+                                                        : "💰 Giá cố định"}
                                             </Typography>
 
                                             {/* Status indicator */}
@@ -1046,12 +1046,12 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                 // Đại diện: giữ nguyên field name từ user
                 ...(updatedRoom.renter
                     ? [
-                          {
-                              ...updatedRoom.renter.user,
-                              fullname: updatedRoom.renter.user.name, // Map name → fullname cho UI
-                              isRepresentative: true,
-                          },
-                      ]
+                        {
+                            ...updatedRoom.renter.user,
+                            fullname: updatedRoom.renter.user.name, // Map name → fullname cho UI
+                            isRepresentative: true,
+                        },
+                    ]
                     : []),
             ];
 
@@ -1288,107 +1288,107 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                                     </Grid>
                                 ) : (
                                     renters.map((renter, index) => (
-                                    <Grid item xs={12} sm={6} md={4} key={index}>
-                                        <Card
-                                            sx={{
-                                                height: 240,
-                                                borderRadius: 3,
-                                                width: 340,
-                                                boxShadow: 2,
-                                                p: 2,
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                justifyContent: "space-between",
-                                                transition: "all 0.2s",
-                                                "&:hover": {
-                                                    boxShadow: 4,
-                                                    transform: "translateY(-4px)",
-                                                },
-                                            }}
-                                        >
-                                            {/* Header */}
-                                            <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                                                <Avatar
-                                                    sx={{
-                                                        width: 44,
-                                                        height: 44,
-                                                        bgcolor: "primary.main",
-                                                        mr: 2,
-                                                        fontWeight: 600,
-                                                    }}
-                                                >
-                                                    {renter.fullname?.charAt(0).toUpperCase()}
-                                                </Avatar>
-
-                                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                                    <Typography
-                                                        variant="subtitle1"
-                                                        fontWeight={600}
-                                                        noWrap
-                                                        sx={{ textOverflow: "ellipsis" }}
-                                                    >
-                                                        {renter.fullname}
-                                                    </Typography>
-
-                                                    {renter.isRepresentative && (
-                                                        <Chip
-                                                            label="Người đại diện"
-                                                            size="small"
-                                                            color="success"
-                                                            sx={{ mt: 0.5 }}
-                                                        />
-                                                    )}
-                                                </Box>
-
-                                                <RenterActionMenu
-                                                    renter={renter}
-                                                    roomId={roomId}
-                                                    onDelete={() => handleOpenDeleteConfirm(renter)}
-                                                />
-                                            </Box>
-
-                                            {/* Body */}
-                                            <Box
+                                        <Grid item xs={12} sm={6} md={4} key={index}>
+                                            <Card
                                                 sx={{
-                                                    flex: 1,
+                                                    height: 240,
+                                                    borderRadius: 3,
+                                                    width: 340,
+                                                    boxShadow: 2,
+                                                    p: 2,
                                                     display: "flex",
                                                     flexDirection: "column",
-                                                    gap: 1,
-                                                    mt: 1,
+                                                    justifyContent: "space-between",
+                                                    transition: "all 0.2s",
+                                                    "&:hover": {
+                                                        boxShadow: 4,
+                                                        transform: "translateY(-4px)",
+                                                    },
                                                 }}
                                             >
-                                                {[
-                                                    { icon: <EmailIcon fontSize="small" />, value: renter.email },
-                                                    { icon: <PhoneIcon fontSize="small" />, value: renter.phone },
-                                                    {
-                                                        icon: <CalendarIcon fontSize="small" />,
-                                                        value: renter.birthDate,
-                                                    },
-                                                    { icon: <LocationIcon fontSize="small" />, value: renter.hometown },
-                                                ].map((item, idx) => (
-                                                    <Box
-                                                        key={idx}
+                                                {/* Header */}
+                                                <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                                                    <Avatar
                                                         sx={{
-                                                            display: "flex",
-                                                            alignItems: "center",
-                                                            color: "text.secondary",
+                                                            width: 44,
+                                                            height: 44,
+                                                            bgcolor: "primary.main",
+                                                            mr: 2,
+                                                            fontWeight: 600,
                                                         }}
                                                     >
-                                                        <Box sx={{ mr: 1, color: "primary.main", display: "flex" }}>
-                                                            {item.icon}
-                                                        </Box>
+                                                        {renter.fullname?.charAt(0).toUpperCase()}
+                                                    </Avatar>
+
+                                                    <Box sx={{ flex: 1, minWidth: 0 }}>
                                                         <Typography
-                                                            variant="body2"
+                                                            variant="subtitle1"
+                                                            fontWeight={600}
                                                             noWrap
-                                                            sx={{ flex: 1, textOverflow: "ellipsis" }}
+                                                            sx={{ textOverflow: "ellipsis" }}
                                                         >
-                                                            {item.value || "Chưa cập nhật"}
+                                                            {renter.fullname}
                                                         </Typography>
+
+                                                        {renter.isRepresentative && (
+                                                            <Chip
+                                                                label="Người đại diện"
+                                                                size="small"
+                                                                color="success"
+                                                                sx={{ mt: 0.5 }}
+                                                            />
+                                                        )}
                                                     </Box>
-                                                ))}
-                                            </Box>
-                                        </Card>
-                                    </Grid>
+
+                                                    <RenterActionMenu
+                                                        renter={renter}
+                                                        roomId={roomId}
+                                                        onDelete={() => handleOpenDeleteConfirm(renter)}
+                                                    />
+                                                </Box>
+
+                                                {/* Body */}
+                                                <Box
+                                                    sx={{
+                                                        flex: 1,
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        gap: 1,
+                                                        mt: 1,
+                                                    }}
+                                                >
+                                                    {[
+                                                        { icon: <EmailIcon fontSize="small" />, value: renter.email },
+                                                        { icon: <PhoneIcon fontSize="small" />, value: renter.phone },
+                                                        {
+                                                            icon: <CalendarIcon fontSize="small" />,
+                                                            value: renter.birthDate,
+                                                        },
+                                                        { icon: <LocationIcon fontSize="small" />, value: renter.hometown },
+                                                    ].map((item, idx) => (
+                                                        <Box
+                                                            key={idx}
+                                                            sx={{
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                color: "text.secondary",
+                                                            }}
+                                                        >
+                                                            <Box sx={{ mr: 1, color: "primary.main", display: "flex" }}>
+                                                                {item.icon}
+                                                            </Box>
+                                                            <Typography
+                                                                variant="body2"
+                                                                noWrap
+                                                                sx={{ flex: 1, textOverflow: "ellipsis" }}
+                                                            >
+                                                                {item.value || "Chưa cập nhật"}
+                                                            </Typography>
+                                                        </Box>
+                                                    ))}
+                                                </Box>
+                                            </Card>
+                                        </Grid>
                                     ))
                                 )}
                             </Grid>
@@ -1613,7 +1613,7 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                         variant="outlined"
                         size="small"
                         autoFocus
-                        // Remove debounce since we want exact matches
+                    // Remove debounce since we want exact matches
                     />
 
                     <List sx={{ maxHeight: 400, overflow: "auto" }}>
