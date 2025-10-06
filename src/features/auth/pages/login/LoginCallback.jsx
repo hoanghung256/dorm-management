@@ -46,7 +46,7 @@ function LoginCallback() {
         }
         if (fetchedUser) {
             if (fetchedUser.role === "landlord") navigate("/landlord/dorms");
-            if (fetchedUser.role === "renter") navigate("/");
+            if (fetchedUser.role === "renter") navigate("/paymentSubmit");
         }
     }, [user, fetchedUser]);
 
