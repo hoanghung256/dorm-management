@@ -413,6 +413,26 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
             });
 
             if (result.success) {
+                // Update lastUsedNumber for metered amenities after invoice creation
+                const meteredReadings = amenities
+                    .filter(amenity => !amenity.isRoomRent && amenity.isMetered && amenity.hasInput)
+                    .map(amenity => ({
+                        amenityId: amenity.id,
+                        lastUsedNumber: invoiceData[amenity.id] || 0,
+                    }));
+
+                if (meteredReadings.length > 0) {
+                    try {
+                        await convexMutation(api.functions.amentities.updateLastUsedNumbers, {
+                            roomId: confirmData.roomId,
+                            readings: meteredReadings,
+                        });
+                    } catch (updateError) {
+                        console.error("Error updating lastUsedNumber:", updateError);
+                        // Don't fail the whole operation if this update fails
+                    }
+                }
+
                 handleReset();
                 setConfirmData(null);
                 onClose();
