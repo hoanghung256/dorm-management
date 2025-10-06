@@ -186,13 +186,7 @@ export const create = mutation({
 export const updateStatus = mutation({
     args: {
         invoiceId: v.id("invoices"),
-        status: v.union(
-            v.literal("pending"),
-            v.literal("submitted"),
-            v.literal("approved"),
-            v.literal("rejected"),
-            v.literal("paid"),
-        ),
+        status: v.union(v.literal("pending"), v.literal("unpaid"), v.literal("paid")),
     },
     handler: async (ctx, { invoiceId, status }) => {
         const inv = await ctx.db.get(invoiceId);
@@ -202,11 +196,17 @@ export const updateStatus = mutation({
             throw new Error("Chỉ được đổi sang 'Đã thanh toán' hoặc 'Chưa thanh toán'");
         }
 
-        if (status === "paid" && !inv.evidenceUrls?.trim()) {
-            throw new Error("Cần có ảnh chứng từ mới được đổi sang 'Đã thanh toán'");
+        if (
+            status === "paid" &&
+            (!inv.evidenceUrls || typeof inv.evidenceUrls !== "string" || inv.evidenceUrls.trim().length === 0)
+        ) {
+            throw new Error("Cần có ảnh chứng từ mới được đổi trạng thái");
         }
 
-        await ctx.db.patch(invoiceId, { status, updatedAt: Date.now() });
+        await ctx.db.patch(invoiceId, {
+            status,
+        });
+
         return { ok: true, message: `Status updated to ${status}` };
     },
 });
@@ -218,7 +218,6 @@ export const updateEvidence = mutation({
         if (!inv) throw new Error("Invoice not found");
         await ctx.db.patch(invoiceId, {
             evidenceUrls: evidenceUrls || null,
-            updatedAt: Date.now(),
         });
         return { ok: true };
     },

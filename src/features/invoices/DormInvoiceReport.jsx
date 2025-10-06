@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { useParams } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import {
     Container,
     Box,
@@ -18,13 +20,17 @@ import {
     DialogContent,
     DialogActions,
     IconButton,
+    Breadcrumbs,
+    Link,
 } from "@mui/material";
-import { useParams } from "react-router-dom";
+import { FileDownload, Close, Visibility, NavigateNext, Home } from "@mui/icons-material";
+
 import { convexQueryOneTime, convexMutation } from "../../services/convexClient";
 import { api } from "../../../convex/_generated/api";
-import { FileDownload, Close, Visibility } from "@mui/icons-material";
 import SearchInvoiceForm from "./SearchInvoiceForm";
 import ConfirmModal from "../../components/ConfirmModal";
+import FirebaseImg from "../../components/FirebaseImg";
+import { getFileDownloadURL } from "../../services/storage";
 
 function formatVND(n) {
     if (n == null) return "-";
@@ -50,6 +56,7 @@ function parseMonthLabel(invoice) {
 
 export default function DormInvoiceReport() {
     const { dormId } = useParams();
+    const navigate = useNavigate();
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -58,19 +65,25 @@ export default function DormInvoiceReport() {
     const [monthFilter, setMonthFilter] = useState("all");
 
     const [imageDialogOpen, setImageDialogOpen] = useState(false);
-    const [currentImageUrl, setCurrentImageUrl] = useState("");
+    const [imgSrc, setImgSrc] = useState("");
 
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [pendingStatusChange, setPendingStatusChange] = useState(null);
 
-    const handleViewImage = (imageUrl) => {
-        setCurrentImageUrl(imageUrl);
-        setImageDialogOpen(true);
+    const handleViewImage = async (fileName) => {
+        try {
+            const url = await getFileDownloadURL(fileName);
+            setImgSrc(url);
+            setImageDialogOpen(true);
+        } catch (error) {
+            console.error("Failed to fetch image URL:", error);
+            alert("Không thể tải ảnh từ Firebase.");
+        }
     };
 
     const handleCloseImageDialog = () => {
         setImageDialogOpen(false);
-        setCurrentImageUrl("");
+        setImgSrc("");
     };
 
     useEffect(() => {
@@ -93,7 +106,6 @@ export default function DormInvoiceReport() {
     const updateStatus = async (invoiceId, newStatus) => {
         const originalInvoice = invoices.find((inv) => inv._id === invoiceId);
 
-        // Optimistic update
         setInvoices((prev) => prev.map((i) => (i._id === invoiceId ? { ...i, status: newStatus } : i)));
 
         try {
@@ -104,7 +116,6 @@ export default function DormInvoiceReport() {
 
             if (!result.ok) throw new Error(result.message || "Update failed");
         } catch (e) {
-            // Rollback on error
             setInvoices((prev) =>
                 prev.map((i) => (i._id === invoiceId ? { ...i, status: originalInvoice?.status || "unpaid" } : i)),
             );
@@ -115,8 +126,13 @@ export default function DormInvoiceReport() {
     const handleStatusChange = (invoice, newStatus) => {
         if (invoice.status === newStatus) return;
 
-        if ((newStatus === "paid" || newStatus === "unpaid") && !invoice.evidenceUrls) {
-            alert("Cần có ảnh bằng chứng trước khi thay đổi trạng thái thanh toán!");
+        if (newStatus === "paid" && !invoice.evidenceUrls) {
+            alert("Cần có ảnh bằng chứng trước khi thay đổi trạng thái sang 'Đã thanh toán'!");
+            return;
+        }
+
+        if (newStatus === "pending") {
+            alert("Không thể thay đổi trạng thái sang 'Đang chờ'.");
             return;
         }
 
@@ -209,6 +225,28 @@ export default function DormInvoiceReport() {
 
     return (
         <Container sx={{ py: 3 }}>
+            {/* Breadcrumb Navigation */}
+            <Breadcrumbs separator={<NavigateNext fontSize="small" />} aria-label="breadcrumb" sx={{ mb: 3 }}>
+                <Link
+                    underline="hover"
+                    color="inherit"
+                    component="button"
+                    onClick={() => navigate("/landlord/invoices")}
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        "&:hover": {
+                            color: "primary.main",
+                        },
+                    }}
+                >
+                    <Home sx={{ mr: 0.5 }} fontSize="inherit" />
+                    Danh sách Nhà Trọ
+                </Link>
+                <Typography color="text.primary" sx={{ fontWeight: 500 }}>
+                    {dormId ? `Báo cáo hóa đơn trọ` : "Tất cả hóa đơn"}
+                </Typography>
+            </Breadcrumbs>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
                 <Box>
                     <Typography variant="h4" fontWeight="bold">
@@ -315,13 +353,16 @@ export default function DormInvoiceReport() {
                                             onChange={(e) => handleStatusChange(inv, e.target.value)}
                                             sx={{ minWidth: 140 }}
                                         >
-                                            <MenuItem value="pending" disabled={inv.evidenceUrls}>
+                                            <MenuItem value="pending" disabled>
                                                 Đang chờ
                                             </MenuItem>
+                                            <MenuItem value="unpaid" disabled={!inv.evidenceUrls}>
+                                                Chưa thanh toán
+                                            </MenuItem>
 
-                                            <MenuItem value="unpaid">Chưa thanh toán</MenuItem>
-
-                                            <MenuItem value="paid">Đã thanh toán</MenuItem>
+                                            <MenuItem value="paid" disabled={!inv.evidenceUrls}>
+                                                Đã thanh toán
+                                            </MenuItem>
                                         </Select>
                                     </TableCell>
 
@@ -386,28 +427,17 @@ export default function DormInvoiceReport() {
                     </IconButton>
                 </DialogActions>
                 <DialogContent sx={{ p: 0, display: "flex", justifyContent: "center", alignItems: "center" }}>
-                    {currentImageUrl && (
+                    {imgSrc ? (
                         <img
-                            src={currentImageUrl}
-                            alt="Bằng chứng thanh toán"
-                            style={{
-                                maxWidth: "100%",
-                                maxHeight: "80vh",
-                                objectFit: "contain",
-                            }}
-                            onError={(e) => {
-                                e.target.style.display = "none";
-                                e.target.nextSibling.style.display = "block";
-                            }}
+                            src={imgSrc}
+                            alt="Evidence"
+                            style={{ maxWidth: "100%", maxHeight: "80vh", objectFit: "contain" }}
                         />
+                    ) : (
+                        <Typography variant="body1" color="text.secondary" sx={{ p: 4 }}>
+                            Không thể tải ảnh
+                        </Typography>
                     )}
-                    <Typography
-                        variant="body1"
-                        color="text.secondary"
-                        sx={{ display: "none", textAlign: "center", p: 4 }}
-                    >
-                        Không thể tải ảnh
-                    </Typography>
                 </DialogContent>
             </Dialog>
 

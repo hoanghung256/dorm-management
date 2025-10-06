@@ -57,6 +57,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import PersonOffIcon from "@mui/icons-material/PersonOff";
 import { CardHeader, Tooltip } from "@mui/material";
 import toast from "react-hot-toast";
+import { formatNumber } from "../../components/CurrencyTextField.jsx";
 
 // Add onDialogClose prop to component declaration
 const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
@@ -700,20 +701,13 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                                 fullWidth
                                 type="text"
                                 inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
-                                value={String(invoiceData[amenity.id] || "")}
+                                value={formatNumber(amenity.value) || ""}
                                 onChange={(e) => {
-                                    // Allow only numbers during typing
-                                    const value = e.target.value.replace(/[^0-9]/g, "");
-                                    handleInputChange(amenity.id, value);
-                                }}
-                                onBlur={(e) => {
-                                    // Convert to number on blur for calculations if not empty
-                                    const value = e.target.value.trim();
-                                    if (value === "") {
-                                        handleInputChange(amenity.id, "");
-                                    } else {
-                                        handleInputChange(amenity.id, Number(value));
-                                    }
+                                    // Remove all non-digit characters (including dots)
+                                    const numericValue = e.target.value.replace(/[^\d]/g, "");
+                                    // Store as number if not empty, empty string otherwise
+                                    const parsedValue = numericValue === "" ? "" : parseInt(numericValue) || 0;
+                                    handleInputChange(amenity.id, parsedValue);
                                 }}
                                 InputProps={{
                                     endAdornment: <InputAdornment position="end">{amenity.inputLabel}</InputAdornment>,

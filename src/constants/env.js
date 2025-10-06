@@ -1,6 +1,7 @@
 // export const CONVEX_DEPLOYMENT = import.meta.env.VITE_CONVEX_DEPLOYMENT;
 export const CONVEX_URL = import.meta.env.VITE_CONVEX_URL;
 export const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+export const FIREBASE_API_KEY = import.meta.env.VITE_FIREBASE_API_KEY;
 
 // if (!CONVEX_DEPLOYMENT) {
 //     throw new Error('Missing VITE_CONVEX_DEPLOYMENT environment variable');

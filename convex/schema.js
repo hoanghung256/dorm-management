@@ -100,9 +100,7 @@ export default defineSchema({
         currency: v.literal("VND"),
         status: v.union(
             v.literal("pending"),
-            v.literal("submitted"),
-            v.literal("approved"),
-            v.literal("rejected"),
+            v.literal("unpaid"),
             v.literal("paid"),
         ),
         evidenceUrls: v.optional(v.string()),
