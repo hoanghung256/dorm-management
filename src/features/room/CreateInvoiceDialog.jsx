@@ -99,6 +99,9 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
     // Add state for form validation errors
     const [renterFormErrors, setRenterFormErrors] = useState({});
 
+    // Add flag to track if initial data has been loaded
+    const [isInitialDataLoaded, setIsInitialDataLoaded] = useState(false);
+
     useEffect(() => {
         console.log("de", roomDetails);
     }, [roomDetails]);
@@ -107,12 +110,13 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
     React.useEffect(() => {
         if (open && roomId) {
             setLoading(true);
+            setIsInitialDataLoaded(false); // Reset flag when dialog opens
             getRoomDetailsAndAmenities();
         }
     }, [open, roomId]);
 
     React.useEffect(() => {
-        if (roomAmenities && Object.keys(invoiceData).length === 0) {
+        if (roomAmenities && !isInitialDataLoaded) {
             const initialData = {};
             const initialToggles = {};
             roomAmenities.forEach((amenity) => {
@@ -129,8 +133,9 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
                 setInvoiceData(initialData);
             }
             setAmenityToggles(initialToggles);
+            setIsInitialDataLoaded(true); // Mark as loaded
         }
-    }, [roomAmenities, roomDetails, invoiceData]);
+    }, [roomAmenities, roomDetails, isInitialDataLoaded]);
 
     const getRoomDetailsAndAmenities = async () => {
         Promise.all([
@@ -323,13 +328,7 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
     // Handle functions
     const handleTabChange = (event, newValue) => {
         setActiveTab(newValue);
-
-        // Refresh amenities data when switching to amenities tab
-        if (newValue === 1 && roomId) {
-            console.log("Refreshing amenities data...");
-            // loadRoomData();
-            getRoomDetailsAndAmenities();
-        }
+        // Removed unnecessary getRoomDetailsAndAmenities() call that was causing data loss
     };
 
     const handleReset = () => {
@@ -1018,6 +1017,7 @@ const CreateInvoiceDialog = ({ open, onClose, roomId, onDialogClose }) => {
         setSelectedRenter(null);
         setSearchTerm("");
         setSearchResults([]);
+        setIsInitialDataLoaded(false); // Reset flag when closing
 
         // Call both close handlers
         onClose();
