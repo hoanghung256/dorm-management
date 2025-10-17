@@ -1,11 +1,18 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/PricingPopup.css";
-const PricingPopup = ({ isOpen, onClose }) => {
+
+const PricingPopup = ({ isOpen, open, onClose }) => {
     const [selectedPlan, setSelectedPlan] = useState("basic");
+    const navigate = useNavigate();
+
+    const visible = typeof isOpen === "boolean" ? isOpen : !!open;
+    if (!visible) return null;
 
     const plans = [
         {
             id: "basic",
+            tier: "Basic",
             name: "Cơ bản",
             price: "49,000",
             duration: "/tháng",
@@ -24,6 +31,7 @@ const PricingPopup = ({ isOpen, onClose }) => {
         },
         {
             id: "professional",
+            tier: "Pro",
             name: "Chuyên nghiệp",
             price: "79,000",
             duration: "/tháng",
@@ -41,14 +49,18 @@ const PricingPopup = ({ isOpen, onClose }) => {
         },
     ];
 
-    if (!isOpen) return null;
+    const handleGoToPayment = (tier) => {
+        const selected = tier === "Pro" ? "Pro" : "Basic";
+        onClose?.();
+        navigate(`/landlord/payments/package?selected=${encodeURIComponent(selected)}`);
+    };
 
     return (
         <div className="pricing-popup-overlay" onClick={onClose}>
             <div className="pricing-popup-container" onClick={(e) => e.stopPropagation()}>
                 <div className="pricing-popup-header">
                     <h2>Lựa chọn gói</h2>
-                    <p>Chọn gói quản lý phù hợp với nhu cầu của bạn. Nâng cấp hoặc hạ gói mọi lúc.</p>
+                    <p>Chọn gói phù hợp. Nâng cấp/hạ gói bất cứ lúc nào.</p>
                     <button className="close-button" onClick={onClose}>
                         ×
                     </button>
@@ -89,8 +101,13 @@ const PricingPopup = ({ isOpen, onClose }) => {
                                 ))}
                             </div>
 
-                            <button className="plan-button" style={{ backgroundColor: plan.buttonColor }}>
-                                {plan.buttonText}
+                            {/* Chuyển đến trang xác nhận gói cần thanh toán */}
+                            <button
+                                className="plan-button"
+                                style={{ backgroundColor: plan.buttonColor }}
+                                onClick={() => handleGoToPayment(plan.tier)}
+                            >
+                                Nâng cấp / Thanh toán
                             </button>
                         </div>
                     ))}
@@ -100,7 +117,6 @@ const PricingPopup = ({ isOpen, onClose }) => {
                     <button className="back-button" onClick={onClose}>
                         ← Trở về
                     </button>
-                    {/* <button className="complete-button">Hoàn thành</button> */}
                 </div>
             </div>
         </div>

@@ -58,13 +58,15 @@ export const createUser = mutation({
                 const landlordId = await ctx.db.insert("landlords", {
                     userId: userId,
                     subscriptionTier: "Free",
-                    dormLimit: 5,
+                    dormLimit: 1,
+                    roomLimit: 15,
                     overageFeePerRoom: 0,
                 });
                 user.detail = {
                     _id: landlordId,
                     subscriptionTier: "Free",
-                    dormLimit: 5,
+                    dormLimit: 1,
+                    roomLimit: 15,
                     overageFeePerRoom: 0,
                 };
             } else if (role === "renter") {

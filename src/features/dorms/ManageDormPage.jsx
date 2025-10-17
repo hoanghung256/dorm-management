@@ -26,6 +26,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../../../convex/_generated/api";
 import useConvexUserData from "../../hooks/useConvexUserData";
 import { convexMutation, convexQueryOneTime } from "../../services/convexClient";
+import PricingPopup from "../../components/PricingPopup";
 import SaveDormModal from "./SaveDormModal";
 import SaveAmenitiesModal from "./SaveAmenitiesModal";
 import ConfirmModal from "../../components/ConfirmModal";
@@ -61,7 +62,40 @@ function ManageDormPage() {
         setPageData(res);
     };
 
+    const [limits, setLimits] = useState(null);
+    const [showPricing, setShowPricing] = useState(false);
+
+    useEffect(() => {
+        const load = async () => {
+            if (!user?.detail?._id) return;
+            try {
+                const res = await convexQueryOneTime(api.functions.subscriptions.getTrialAwareLimits, {
+                    landlordId: user.detail._id,
+                });
+                setLimits(res);
+            } catch (e) {
+                console.error(e);
+                setLimits({ tier: "Free", trial: { expired: false }, limits: { dormLimit: 1, roomLimit: 15 } });
+            }
+        };
+        load();
+    }, [user?.detail?._id]);
+
+    // Auto-open pricing if trial expired and still on Free tier
+    useEffect(() => {
+        if (limits?.trial?.expired && limits?.tier === "Free") {
+            setShowPricing(true);
+        }
+    }, [limits]);
+
     const openCreate = () => {
+        const current = pageData?.items?.length || 0;
+        const dormLimit = limits?.limits?.dormLimit;
+        const over = typeof dormLimit === "number" && current >= dormLimit;
+        if (over) {
+            setShowPricing(true);
+            return;
+        }
         setIsShowEditDormModal(true);
         setEditDorm(null);
     };
@@ -279,6 +313,7 @@ function ManageDormPage() {
                 </Box>
                 <Divider sx={{ mt: 4 }} />
             </Box>
+            <PricingPopup isOpen={showPricing} onClose={() => setShowPricing(false)} />
         </>
     );
 }

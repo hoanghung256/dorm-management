@@ -18,6 +18,7 @@ export default defineSchema({
         userId: v.id("users"),
         subscriptionTier: v.optional(v.union(v.literal("Free"), v.literal("Basic"), v.literal("Pro"))),
         dormLimit: v.optional(v.number()),
+        roomLimit: v.optional(v.number()),
         overageFeePerRoom: v.optional(v.number()),
     }).index("by_user", ["userId"]),
 
@@ -98,11 +99,7 @@ export default defineSchema({
         }),
         totalAmount: v.number(),
         currency: v.literal("VND"),
-        status: v.union(
-            v.literal("pending"),
-            v.literal("unpaid"),
-            v.literal("paid"),
-        ),
+        status: v.union(v.literal("pending"), v.literal("unpaid"), v.literal("paid")),
         evidenceUrls: v.optional(v.string()),
     })
         .index("by_room", ["roomId"])

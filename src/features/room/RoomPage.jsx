@@ -34,6 +34,7 @@ import ConfirmModal from "../../components/ConfirmModal";
 import UpdateRoomForm from "../../features/room/UpdateRoomForm";
 import SearchRoomForm from "./SearchRoomForm";
 import CreateInvoiceDialog from "../../features/room/CreateInvoiceDialog";
+import PricingPopup from "../../components/PricingPopup";
 
 function formatVND(n) {
     if (n === undefined || n === null) return "-";
@@ -85,7 +86,7 @@ export default function RoomPage() {
     const navigate = useNavigate();
 
     const [rooms, setRooms] = useState([]);
-    const [roomAmenities, setRoomAmenities] = useState({}); // Store amenities by roomId
+    const [roomAmenities, setRoomAmenities] = useState({});
     const [loading, setLoading] = useState(false);
 
     const [openCreate, setOpenCreate] = useState(false);
@@ -100,7 +101,10 @@ export default function RoomPage() {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
 
-    // Menu state
+    const [limits, setLimits] = useState(null);
+    const [totalRoomsCount, setTotalRoomsCount] = useState(0);
+    const [showPricing, setShowPricing] = useState(false);
+
     const [menuAnchor, setMenuAnchor] = useState(null);
     const [menuRoomId, setMenuRoomId] = useState(null);
     const openMenu = Boolean(menuAnchor);
@@ -162,6 +166,14 @@ export default function RoomPage() {
                     data = await convexQueryOneTime(api.functions.rooms.listByLandlord, { landlordId });
                 }
                 setRooms(data || []);
+                // Track total rooms across landlord for pack limit enforcement
+                if (routeDormId) {
+                    // When viewing a single dorm, fetch total rooms of landlord to enforce global limit
+                    const allRooms = await convexQueryOneTime(api.functions.rooms.listByLandlord, { landlordId });
+                    setTotalRoomsCount((allRooms || []).length);
+                } else {
+                    setTotalRoomsCount((data || []).length);
+                }
 
                 // load renter names
                 const renterIds = data.filter((room) => room.currentRenterId).map((r) => r.currentRenterId);
@@ -232,9 +244,33 @@ export default function RoomPage() {
         loadRooms();
     }, [landlordId, routeDormId]);
 
+    useEffect(() => {
+        const loadLimits = async () => {
+            if (!landlordId) return;
+            try {
+                const res = await convexQueryOneTime(api.functions.subscriptions.getTrialAwareLimits, { landlordId });
+                setLimits(res);
+            } catch (e) {
+                console.error(e);
+                setLimits({ tier: "Free", trial: { expired: false }, limits: { roomLimit: 15, dormLimit: 1 } });
+            }
+        };
+        loadLimits();
+    }, [landlordId]);
+
     const handleOpenCreate = (dormId = null) => {
+        const roomLimit = limits?.limits?.roomLimit;
+        const over = typeof roomLimit === "number" && totalRoomsCount >= roomLimit;
+        console.log("roomLimit", roomLimit, "totalRoomsCount", totalRoomsCount, "over", over);
+        if (over) {
+            setOpenCreate(false);
+            setShowPricing(true);
+            return;
+        } else {
+            setOpenCreate(true);
+            setShowPricing(false);
+        }
         setCreateDormId(dormId ?? routeDormId ?? null);
-        setOpenCreate(true);
     };
 
     const handleOpenUpdate = (roomId = null) => {
@@ -265,6 +301,13 @@ export default function RoomPage() {
                 data = await convexQueryOneTime(api.functions.rooms.listByLandlord, { landlordId });
             }
             setRooms(data || []);
+            // Update total rooms count on reload as well
+            if (routeDormId) {
+                const allRooms = await convexQueryOneTime(api.functions.rooms.listByLandlord, { landlordId });
+                setTotalRoomsCount((allRooms || []).length);
+            } else {
+                setTotalRoomsCount((data || []).length);
+            }
 
             const renterIds = data.filter((room) => room.currentRenterId).map((r) => r.currentRenterId);
             if (renterIds.length > 0 && api.functions?.renters?.getById) {
@@ -568,7 +611,6 @@ export default function RoomPage() {
                                                     fontWeight: "bold",
                                                     flex: 1,
                                                     pr: 4,
-                                                    whiteSpace: "nowrap",
                                                     overflow: "hidden",
                                                     textOverflow: "ellipsis",
                                                     fontSize: { xs: "1.05rem", sm: "1.1rem" },
@@ -762,6 +804,13 @@ export default function RoomPage() {
                     />
                 )}
             </Container>
+
+            <PricingPopup
+                isOpen={showPricing}
+                onClose={() => setShowPricing(false)}
+                landlordId={landlordId}
+                currentTier={limits?.tier || "Free"}
+            />
         </>
     );
 }
