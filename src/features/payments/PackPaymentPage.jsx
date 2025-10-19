@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useUser } from "@clerk/clerk-react";
 import {
     AppBar,
     Toolbar,
@@ -70,6 +71,7 @@ function planFromParam(selected) {
 
 export default function PackPaymentPage() {
     const navigate = useNavigate();
+    const { user, isLoaded } = useUser();
     const { search } = useLocation();
     const params = new URLSearchParams(search);
     const selected = params.get("selected");
@@ -88,6 +90,21 @@ export default function PackPaymentPage() {
 
     const handleChoose = (id) => setSelectedId(id);
     const handleBack = () => navigate(-1);
+
+    const ensureAuthAndProceed = (selectedPlanId) => {
+        const desired = `/landlord/payments/package/confirm?selected=${encodeURIComponent(selectedPlanId)}`;
+        // if Clerk not loaded yet, wait a moment (fallback)
+        if (!isLoaded) {
+            // optimistic redirect to login if not loaded quickly
+            return navigate(`/login-callback?returnTo=${encodeURIComponent(desired)}`);
+        }
+        if (!user) {
+            // redirect to your login callback; after login redirect back to desired page
+            return navigate(`/login-callback?returnTo=${encodeURIComponent(desired)}`);
+        }
+        // user present, continue to confirmation/payment page
+        navigate(desired);
+    };
 
     return (
         <Box sx={{ minHeight: "100vh", bgcolor: (t) => t.palette.background.default }}>
@@ -225,12 +242,7 @@ export default function PackPaymentPage() {
                                             variant="contained"
                                             color="primary"
                                             fullWidth
-                                            onClick={() =>
-                                                navigate(
-                                                    // Chuyển hướng đến trang thanh toán
-                                                    `/landlord/payments/package/confirm?selected=${selectedPlan.id}`,
-                                                )
-                                            }
+                                            onClick={() => ensureAuthAndProceed(selectedPlan.id)}
                                             sx={{ textTransform: "none", fontWeight: 700 }}
                                         >
                                             Tiếp tục thanh toán
