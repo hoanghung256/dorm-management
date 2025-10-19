@@ -1,4 +1,20 @@
-import { AppBar, Toolbar, Box, Typography, Stack, Button } from "@mui/material";
+import {
+    AppBar,
+    Toolbar,
+    Box,
+    Typography,
+    Stack,
+    Button,
+    IconButton,
+    Drawer,
+    List,
+    ListItem,
+    ListItemButton,
+    ListItemText,
+    useMediaQuery,
+    useTheme,
+} from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
 import { UserButton } from "@clerk/clerk-react";
 import React, { useState } from "react";
 import useClerkUserData from "../../hooks/useClerkUserData";
@@ -10,6 +26,24 @@ export default function GeneralHeader() {
     const { user } = useClerkUserData();
     const [activeButton, setActiveButton] = useState("home");
     const [defaultActive, setDefaultActive] = useState("home");
+    const [mobileOpen, setMobileOpen] = useState(false);
+
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+    const handleDrawerToggle = () => {
+        setMobileOpen(!mobileOpen);
+    };
+
+    const menuItems = [
+        { label: "Trang chủ", value: "home", href: "/" },
+        { label: "Liên hệ", value: "contact", href: "/#contact" },
+        { label: "Về chúng tôi", value: "about", href: "/#about" },
+    ];
+
+    if (!user) {
+        menuItems.push({ label: "Đăng nhập", value: "login", href: "/login" });
+    }
 
     return (
         <>
@@ -79,99 +113,102 @@ export default function GeneralHeader() {
                         </Box>
                     </Stack>
 
-                    {/* Navigation Section */}
-                    <Stack
-                        direction="row"
-                        spacing={4}
-                        alignItems="center"
-                        onMouseLeave={() => setActiveButton(defaultActive)}
-                        sx={{ fontSize: "16px", fontWeight: 500 }}
-                    >
-                        <Button
-                            href="/"
-                            className={activeButton === "home" ? "nav-button-active" : "nav-button-inactive"}
-                            onMouseEnter={() => setActiveButton("home")}
-                            onFocus={() => setActiveButton("home")}
-                            onClick={() => setDefaultActive("home")}
-                            sx={{
-                                minWidth: "98px",
-                                height: "40px",
-                                px: 2,
-                                borderRadius: "8px",
-                                fontWeight: 700,
-                                fontSize: "16px",
-                                textTransform: "none",
-                                transition: "all 0.2s",
-                            }}
+                    {/* Desktop Navigation */}
+                    {!isMobile && (
+                        <Stack
+                            direction="row"
+                            spacing={4}
+                            alignItems="center"
+                            onMouseLeave={() => setActiveButton(defaultActive)}
+                            sx={{ fontSize: "16px", fontWeight: 500 }}
                         >
-                            Trang chủ
-                        </Button>
-                        <Button
-                            href="/#contact" // navigate to landingPage.jsx #contact
-                            className={activeButton === "contact" ? "nav-button-active" : "nav-button-inactive"}
-                            onMouseEnter={() => setActiveButton("contact")}
-                            onFocus={() => setActiveButton("contact")}
-                            onClick={() => setDefaultActive("contact")}
-                            sx={{
-                                minWidth: "98px",
-                                height: "40px",
-                                px: 2,
-                                borderRadius: "8px",
-                                fontWeight: 700,
-                                fontSize: "16px",
-                                textTransform: "none",
-                                transition: "all 0.2s",
-                            }}
+                            {menuItems.map((item) => (
+                                <Button
+                                    key={item.value}
+                                    href={item.href}
+                                    className={
+                                        activeButton === item.value ? "nav-button-active" : "nav-button-inactive"
+                                    }
+                                    onMouseEnter={() => setActiveButton(item.value)}
+                                    onFocus={() => setActiveButton(item.value)}
+                                    onClick={() => setDefaultActive(item.value)}
+                                    sx={{
+                                        minWidth: "98px",
+                                        height: "40px",
+                                        px: 2,
+                                        borderRadius: "8px",
+                                        fontWeight: 700,
+                                        fontSize: "16px",
+                                        textTransform: "none",
+                                        transition: "all 0.2s",
+                                    }}
+                                >
+                                    {item.label}
+                                </Button>
+                            ))}
+                            {user && (
+                                <Box sx={{ position: "relative", zIndex: 1250 }}>
+                                    <UserButton afterSignOutUrl="/" />
+                                </Box>
+                            )}
+                        </Stack>
+                    )}
+
+                    {/* Mobile Hamburger Icon */}
+                    {isMobile && (
+                        <IconButton
+                            edge="end"
+                            color="#7b1fa2"
+                            aria-label="menu"
+                            onClick={handleDrawerToggle}
+                            sx={{ ml: 1 }}
                         >
-                            Liên hệ
-                        </Button>
-                        <Button
-                            href="/#about" // navigate to landingPage.jsx #about
-                            className={activeButton === "about" ? "nav-button-active" : "nav-button-inactive"}
-                            onMouseEnter={() => setActiveButton("about")}
-                            onFocus={() => setActiveButton("about")}
-                            onClick={() => setDefaultActive("about")}
-                            sx={{
-                                minWidth: "98px",
-                                height: "40px",
-                                px: 2,
-                                borderRadius: "8px",
-                                fontWeight: 700,
-                                fontSize: "16px",
-                                textTransform: "none",
-                                transition: "all 0.2s",
-                            }}
-                        >
-                            Về chúng tôi
-                        </Button>
-                        {user ? (
-                            <Box sx={{ position: "relative", zIndex: 1250 }}>
-                                <UserButton afterSignOutUrl="/" />
-                            </Box>
-                        ) : (
-                            <Button
-                                href="/login"
-                                className={activeButton === "login" ? "nav-button-active" : "nav-button-inactive"}
-                                onMouseEnter={() => setActiveButton("login")}
-                                onFocus={() => setActiveButton("login")}
-                                onClick={() => setDefaultActive("login")}
-                                sx={{
-                                    minWidth: "98px",
-                                    height: "40px",
-                                    px: 2,
-                                    borderRadius: "8px",
-                                    fontWeight: 700,
-                                    fontSize: "16px",
-                                    textTransform: "none",
-                                    transition: "all 0.2s",
-                                }}
-                            >
-                                Đăng nhập
-                            </Button>
-                        )}
-                    </Stack>
+                            <MenuIcon />
+                        </IconButton>
+                    )}
                 </Toolbar>
             </AppBar>
+
+            {/* Mobile Drawer */}
+            <Drawer
+                anchor="right"
+                open={mobileOpen}
+                onClose={handleDrawerToggle}
+                ModalProps={{ keepMounted: true }}
+                sx={{
+                    "& .MuiDrawer-paper": {
+                        width: 240,
+                        paddingTop: `${NAVBAR_HEIGHT}px`,
+                        boxSizing: "border-box",
+                        backgroundColor: "#7b1fa2",
+                        backdropFilter: "blur(10px)",
+                        WebkitBackdropFilter: "blur(10px)",
+                    },
+                }}
+            >
+                <List sx={{ color: "white", backgroundColor: "#7b1fa2" }}>
+                    {menuItems.map((item) => (
+                        <ListItem key={item.value} disablePadding>
+                            <ListItemButton
+                                component="a"
+                                href={item.href}
+                                onClick={() => {
+                                    setDefaultActive(item.value);
+                                    setActiveButton(item.value);
+                                    setMobileOpen(false);
+                                }}
+                            >
+                                <ListItemText primary={item.label} />
+                            </ListItemButton>
+                        </ListItem>
+                    ))}
+                    {user && (
+                        <ListItem>
+                            <UserButton afterSignOutUrl="/" />
+                        </ListItem>
+                    )}
+                </List>
+            </Drawer>
         </>
     );
 }

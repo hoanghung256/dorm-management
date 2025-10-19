@@ -143,7 +143,7 @@ const LandingPage = () => {
                                     alt="Community Space"
                                 />
                                 <img
-                                    src="https://www.harringtonhousing.com/uploads/0003/3066/2023/01/12/efficient-studying-methods-for-college-students.jpg"
+                                    src="https://blogs.cedarville.edu/studentlife/wp-content/uploads/2024/10/Dorm-Room-Etiquette-Hero-Image-2.jpg"
                                     alt="Happy Students"
                                 />
                             </div>
