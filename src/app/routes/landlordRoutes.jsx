@@ -14,4 +14,6 @@ export const landlordRoutes = [
     { path: "/landlord/invoices/:dormId", element: <DormInvoiceReport /> },
     { path: "/landlord/payments/package", element: <PackPaymentPage /> },
     { path: "/landlord/payments/package/confirm", element: <PaymentServicePage /> },
+    { path: "/landlord/payments/package/success", element: <PaymentServicePage /> },
+    { path: "/landlord/payments/package/cancel", element: <PaymentServicePage /> },
 ];

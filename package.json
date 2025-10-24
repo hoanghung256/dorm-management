@@ -5,16 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "webhook-server": "node server/webhook-payos.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "express": "^4.18.2",
     "@clerk/clerk-react": "^5.47.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.2",
     "@mui/material": "^7.3.2",
+    "@payos/node": "^2.0.3",
     "@reduxjs/toolkit": "^2.9.0",
     "axios": "^1.11.0",
     "bootstrap": "^5.3.8",

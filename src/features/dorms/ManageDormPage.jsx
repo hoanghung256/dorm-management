@@ -224,7 +224,6 @@ function ManageDormPage() {
                                         cursor: "pointer",
                                         transition: "transform 0.2s, box-shadow 0.2s",
                                         background: "linear-gradient(180deg,#ffffff 0%,#f9f6fc 100%)",
-                                        cursor: "pointer",
                                         "&:hover": {
                                             transform: "translateY(-3px)",
                                             boxShadow: "0 8px 18px rgba(0,0,0,0.18)",

@@ -76,3 +76,57 @@ export const listInvoicesForRenter = query({
         });
     },
 });
+
+// Note: PayOS payment creation lives in `convex/functions/payOS.js` as an action
+// to avoid confusion between mutation/action runtimes and to centralize PayOS
+// credential handling. The old mutation implementation was removed.
+
+export const handlePayOSWebhook = mutation({
+    args: {
+        orderCode: v.number(),
+        status: v.string(),
+        amount: v.number(),
+    },
+    handler: async (ctx, { orderCode, status, amount }) => {
+        // Find the payment request
+        const paymentRequest = await ctx.db
+            .query("paymentRequests")
+            .withIndex("by_order_code", (q) => q.eq("orderCode", orderCode))
+            .first();
+
+        if (!paymentRequest) {
+            throw new Error("Payment request not found");
+        }
+
+        if (status === "PAID") {
+            // Update subscription
+            const currentDate = new Date();
+            const startMonth = currentDate.getMonth() + 1; // Next month
+            const startYear = currentDate.getFullYear();
+            const endMonth = startMonth === 12 ? 1 : startMonth + 1;
+            const endYear = startMonth === 12 ? startYear + 1 : startYear;
+
+            await ctx.db.insert("subscriptions", {
+                landlordId: paymentRequest.landlordId,
+                tier: paymentRequest.tier,
+                periods: {
+                    start: startYear * 12 + startMonth,
+                    end: endYear * 12 + endMonth,
+                },
+            });
+
+            // Update landlord tier
+            await ctx.db.patch(paymentRequest.landlordId, {
+                subscriptionTier: paymentRequest.tier,
+            });
+        }
+
+        // Update payment request status
+        await ctx.db.patch(paymentRequest._id, {
+            status: status === "PAID" ? "completed" : "failed",
+            updatedAt: Date.now(),
+        });
+
+        return { success: true };
+    },
+});

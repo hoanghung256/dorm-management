@@ -1,5 +1,5 @@
 // convex/functions/subscriptions.js
-import { query } from "../_generated/server";
+import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
 
 // Pack limits:
@@ -52,5 +52,19 @@ export const getTrialAwareLimits = query({
             trial: { startedAt, daysElapsed, daysLeft, expired },
             limits: { dormLimit, roomLimit },
         };
+    },
+});
+
+export const create = mutation({
+    args: {
+        landlordId: v.id("landlords"),
+        tier: v.union(v.literal("Free"), v.literal("Basic"), v.literal("Pro")),
+        periods: v.object({
+            start: v.number(),
+            end: v.number(),
+        }),
+    },
+    handler: async (ctx, args) => {
+        return await ctx.db.insert("subscriptions", args);
     },
 });

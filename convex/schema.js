@@ -115,6 +115,16 @@ export default defineSchema({
         }),
     }).index("by_landlord", ["landlordId"]),
 
+    paymentRequests: defineTable({
+        landlordId: v.id("landlords"),
+        tier: v.union(v.literal("Basic"), v.literal("Pro")),
+        orderCode: v.number(),
+        amount: v.number(),
+        status: v.union(v.literal("pending"), v.literal("completed"), v.literal("failed")),
+        createdAt: v.number(),
+        updatedAt: v.optional(v.number()),
+    }).index("by_order_code", ["orderCode"]),
+
     // notifications: defineTable({
     //     landlordId: v.id("landlords"),
     //     title: v.string(),
