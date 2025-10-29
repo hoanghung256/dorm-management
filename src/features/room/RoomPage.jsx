@@ -21,6 +21,13 @@ import {
     Avatar,
     Breadcrumbs,
     Link,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
 } from "@mui/material";
 import {
     Add,
@@ -537,14 +544,172 @@ export default function RoomPage() {
                     onStatusChange={setStatusFilter}
                 />
 
-                {/* Room Cards */}
-                <Grid container spacing={3} sx={{ mb: 3 }} alignItems="stretch" justifyContent="flex-start">
-                    {filteredRooms.length === 0 ? (
-                        <Grid item xs={12}>
-                            <Typography align="center" color="text.secondary" sx={{ fontStyle: "italic" }}>
-                                {rooms.length === 0 ? "Chưa có phòng nào" : "Không tìm thấy phòng phù hợp"}
-                            </Typography>
-                            {/* {rooms.length === 0 && !loading && (
+                {/* Room Table */}
+                {filteredRooms.length === 0 ? (
+                    <Box sx={{ textAlign: "center", py: 4 }}>
+                        <Typography variant="body1" sx={{ color: "text.secondary" }}>
+                            {rooms.length === 0 ? "Chưa có phòng nào" : "Không tìm thấy phòng phù hợp"}
+                        </Typography>
+                    </Box>
+                ) : (
+                    <TableContainer component={Paper} elevation={1} sx={{ mb: 3 }}>
+                        <Table sx={{ minWidth: 650 }}>
+                            <TableHead>
+                                <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                                    <TableCell sx={{ fontWeight: "bold", fontSize: "16px" }}>Mã phòng</TableCell>
+                                    <TableCell sx={{ fontWeight: "bold", fontSize: "16px" }}>Tình trạng</TableCell>
+                                    <TableCell sx={{ fontWeight: "bold", fontSize: "16px" }}>Người thuê</TableCell>
+                                    <TableCell sx={{ fontWeight: "bold", fontSize: "16px" }} align="right">
+                                        Giá thuê
+                                    </TableCell>
+                                    <TableCell sx={{ fontWeight: "bold", fontSize: "16px" }}>Tiện ích</TableCell>
+                                    <TableCell sx={{ fontWeight: "bold", fontSize: "16px" }} align="center">
+                                        Thao tác
+                                    </TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {filteredRooms.map((roomItem) => {
+                                    const chip = statusChip(roomItem.status);
+                                    const renterName = roomItem.currentRenterId
+                                        ? renterNames[roomItem.currentRenterId]
+                                        : null;
+                                    const avatarLetter = renterName ? renterName.charAt(0).toUpperCase() : null;
+                                    const enabledAmenities = (roomAmenities[roomItem._id] || []).filter(
+                                        (amenity) => amenity.enabled !== false,
+                                    );
+
+                                    return (
+                                        <TableRow
+                                            key={roomItem._id}
+                                            hover
+                                            sx={{
+                                                "&:hover": {
+                                                    backgroundColor: "#f9f6fc",
+                                                },
+                                            }}
+                                        >
+                                            <TableCell>
+                                                <Typography variant="h6" fontSize={18} fontWeight={600} color="primary">
+                                                    {roomItem.code}
+                                                </Typography>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Chip
+                                                    size="small"
+                                                    label={chip.label}
+                                                    color={chip.color}
+                                                    variant="filled"
+                                                    sx={{ height: 24, fontSize: "0.8rem" }}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                {renterName ? (
+                                                    <Stack direction="row" spacing={1} alignItems="center">
+                                                        <Avatar
+                                                            sx={{
+                                                                width: 32,
+                                                                height: 32,
+                                                                bgcolor: "#7b1fa2",
+                                                                fontSize: "0.9rem",
+                                                            }}
+                                                        >
+                                                            {avatarLetter}
+                                                        </Avatar>
+                                                        <Typography variant="body2">{renterName}</Typography>
+                                                    </Stack>
+                                                ) : (
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        Chưa có người thuê
+                                                    </Typography>
+                                                )}
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <Typography variant="body1" fontWeight={600}>
+                                                    {formatVND(roomItem.price)} VND
+                                                </Typography>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Stack
+                                                    direction="row"
+                                                    spacing={0.5}
+                                                    flexWrap="wrap"
+                                                    sx={{ maxWidth: 200 }}
+                                                >
+                                                    {enabledAmenities.length === 0 ? (
+                                                        <Chip
+                                                            size="small"
+                                                            label="Chưa có tiện ích"
+                                                            variant="outlined"
+                                                            color="default"
+                                                            sx={{
+                                                                fontSize: "0.75rem",
+                                                                color: "text.secondary",
+                                                                borderColor: "divider",
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <>
+                                                            {enabledAmenities.slice(0, 2).map((amenity, index) => {
+                                                                const amenityName =
+                                                                    amenity.details?.name || amenity.name || "Tiện ích";
+                                                                const amenityType =
+                                                                    amenity.details?.type || amenity.type || "other";
+                                                                return (
+                                                                    <Chip
+                                                                        key={index}
+                                                                        size="small"
+                                                                        label={`${getAmenityIcon(amenityType)} ${amenityName}`}
+                                                                        variant="outlined"
+                                                                        color="primary"
+                                                                        sx={{ fontSize: "0.75rem", mb: 0.5 }}
+                                                                    />
+                                                                );
+                                                            })}
+                                                            {enabledAmenities.length > 2 && (
+                                                                <Chip
+                                                                    size="small"
+                                                                    label={`+${enabledAmenities.length - 2} khác`}
+                                                                    variant="outlined"
+                                                                    color="primary"
+                                                                    sx={{ fontSize: "0.75rem", mb: 0.5 }}
+                                                                />
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </Stack>
+                                            </TableCell>
+                                            <TableCell align="center">
+                                                <Stack direction="row" spacing={1} justifyContent="center">
+                                                    <Button
+                                                        size="small"
+                                                        variant="outlined"
+                                                        onClick={() => {
+                                                            setSelectedRoomId(roomItem._id);
+                                                            setInvoiceDialogOpen(true);
+                                                        }}
+                                                        disabled={loading || !landlordId}
+                                                        sx={{ textTransform: "none", fontSize: "0.8rem" }}
+                                                    >
+                                                        Tạo hóa đơn
+                                                    </Button>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={(e) => handleOpenMenu(e, roomItem._id)}
+                                                        disabled={loading}
+                                                    >
+                                                        <MoreVert />
+                                                    </IconButton>
+                                                </Stack>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                )}
+                {/* {rooms.length === 0 && !loading && (
                                 <Box sx={{ textAlign: "center", mt: 2 }}>
                                     <Button
                                         variant="contained"
@@ -564,179 +729,6 @@ export default function RoomPage() {
                                     </Button>
                                 </Box>
                             )} */}
-                        </Grid>
-                    ) : (
-                        filteredRooms.map((roomItem) => {
-                            const chip = statusChip(roomItem.status);
-                            const createdMs = roomItem.createdAt ?? roomItem._creationTime;
-                            const renterName = roomItem.currentRenterId ? renterNames[roomItem.currentRenterId] : null;
-                            const avatarLetter = renterName ? renterName.charAt(0).toUpperCase() : null;
-
-                            return (
-                                <Grid item xs={12} sm={6} md={4} lg={4} xl={4} key={roomItem._id}>
-                                    <Box
-                                        tabIndex={0}
-                                        sx={{
-                                            position: "relative",
-                                            border: "1px solid #dcdcdc",
-                                            borderRadius: 3,
-                                            p: 2.5,
-                                            backgroundColor: "white",
-                                            boxShadow: "0 3px 8px rgba(0,0,0,0.08)",
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            gap: 1.5,
-                                            height: "100%",
-                                            minHeight: 220,
-                                            transition:
-                                                "border-color .2s ease, box-shadow .2s ease, transform .06s ease",
-                                            "&:hover": {
-                                                borderColor: "#7b1fa2",
-                                                boxShadow: "0 8px 20px rgba(0,0,0,0.12)",
-                                                transform: "translateY(-1px)",
-                                            },
-                                            "&:focus-visible": {
-                                                outline: "none",
-                                                borderColor: "#7b1fa2",
-                                                boxShadow: "0 0 0 3px rgba(123,31,162,0.18)",
-                                            },
-                                            cursor: "pointer",
-                                        }}
-                                        onClick={() => handleOpenInvoiceDialog(roomItem._id)}
-                                    >
-                                        <Box sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
-                                            <Typography
-                                                variant="h6"
-                                                sx={{
-                                                    fontWeight: "bold",
-                                                    flex: 1,
-                                                    pr: 4,
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    fontSize: { xs: "1.05rem", sm: "1.1rem" },
-                                                }}
-                                                title={`Phòng ${roomItem.code}`}
-                                            >
-                                                Phòng {roomItem.code}
-                                            </Typography>
-                                            <Box
-                                                sx={{
-                                                    width: 152,
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "flex-end",
-                                                    columnGap: 0.5,
-                                                    flexShrink: 0,
-                                                }}
-                                            >
-                                                <Chip
-                                                    size="small"
-                                                    label={chip.label}
-                                                    color={chip.color}
-                                                    sx={{ fontWeight: 500 }}
-                                                />
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={(e) => handleOpenMenu(e, roomItem._id)}
-                                                    aria-label="room options"
-                                                >
-                                                    <MoreVert />
-                                                </IconButton>
-                                            </Box>
-                                        </Box>
-
-                                        <Box>
-                                            {roomItem.currentRenterId ? (
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{
-                                                        color: "#7b1fa2",
-                                                        fontWeight: 500,
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: 0.5,
-                                                    }}
-                                                >
-                                                    👤 {renterNames[roomItem.currentRenterId] || "Đang tải..."}
-                                                </Typography>
-                                            ) : (
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{
-                                                        color: "text.secondary",
-                                                        fontStyle: "italic",
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: 0.5,
-                                                    }}
-                                                >
-                                                    👤 Chưa có người thuê
-                                                </Typography>
-                                            )}
-                                        </Box>
-
-                                        <Typography variant="body2" sx={{ mt: 0.5 }}>
-                                            Tiền thuê:{" "}
-                                            <span style={{ fontWeight: 700 }}>{formatVND(roomItem.price)}đ/tháng</span>
-                                        </Typography>
-
-                                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                                            {(roomAmenities[roomItem._id] || [])
-                                                .filter((amenity) => amenity.enabled !== false) // Only show enabled amenities
-                                                .slice(0, 3)
-                                                .map((amenity, index) => (
-                                                    <Chip
-                                                        key={index}
-                                                        size="small"
-                                                        label={`${getAmenityIcon(amenity.details?.type)} ${amenity.details?.name || "Tiện ích"}`}
-                                                        variant="outlined"
-                                                        sx={{
-                                                            fontSize: "0.75rem",
-                                                            "& .MuiChip-label": {
-                                                                px: 1,
-                                                            },
-                                                        }}
-                                                    />
-                                                ))}
-                                            {(roomAmenities[roomItem._id] || []).filter(
-                                                (amenity) => amenity.enabled !== false,
-                                            ).length > 3 && (
-                                                <Chip
-                                                    size="small"
-                                                    label={`+${(roomAmenities[roomItem._id] || []).filter((amenity) => amenity.enabled !== false).length - 3} khác`}
-                                                    variant="outlined"
-                                                    color="primary"
-                                                    sx={{ fontSize: "0.75rem" }}
-                                                />
-                                            )}
-                                            {(roomAmenities[roomItem._id] || []).filter(
-                                                (amenity) => amenity.enabled !== false,
-                                            ).length === 0 && (
-                                                <Chip
-                                                    size="small"
-                                                    label="Chưa có tiện ích"
-                                                    variant="outlined"
-                                                    color="default"
-                                                    sx={{
-                                                        fontSize: "0.75rem",
-                                                        color: "text.secondary",
-                                                        borderColor: "divider",
-                                                    }}
-                                                />
-                                            )}
-                                        </Stack>
-
-                                        <Typography variant="body2" color="text.secondary">
-                                            Ngày tạo:{" "}
-                                            {createdMs ? new Date(createdMs).toLocaleDateString("vi-VN") : "-"}
-                                        </Typography>
-                                    </Box>
-                                </Grid>
-                            );
-                        })
-                    )}
-                </Grid>
-
                 <Menu
                     anchorEl={menuAnchor}
                     open={openMenu}
