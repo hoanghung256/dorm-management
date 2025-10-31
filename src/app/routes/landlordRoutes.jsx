@@ -4,7 +4,7 @@ import RoomPage from "../../features/room/RoomPage";
 import DormInvoiceReport from "../../features/invoices/DormInvoiceReport";
 import DormInvoicePicker from "../../features/invoices/DormInvoicePicker";
 import PackPaymentPage from "../../features/payments/PackPaymentPage";
-import PaymentServicePage from "../../features/payments/PaymentServicePage";
+import PaymentResultPage from "../../features/payments/PaymentResultPage";
 
 export const landlordRoutes = [
     { path: "/landlord/dorms", element: <ManageDormPage /> },
@@ -13,5 +13,5 @@ export const landlordRoutes = [
     { path: "/landlord/dorms/:dormId", element: <RoomPage /> },
     { path: "/landlord/invoices/:dormId", element: <DormInvoiceReport /> },
     { path: "/landlord/payments/package", element: <PackPaymentPage /> },
-    { path: "/landlord/payments/package/confirm", element: <PaymentServicePage /> },
+    { path: "/landlord/payments/package/result", element: <PaymentResultPage /> },
 ];

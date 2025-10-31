@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 import {
@@ -24,6 +24,9 @@ import {
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import StarRoundedIcon from "@mui/icons-material/StarRounded";
+import { convexAction } from "../../services/convexClient";
+import { api } from "../../../convex/_generated/api";
+import { PAYOS_CANCEL_URL, PAYOS_CHECKOUT_URL, PAYOS_RETURN_URL } from "../../constants/env";
 
 const plans = [
     {
@@ -71,13 +74,23 @@ function planFromParam(selected) {
 
 export default function PackPaymentPage() {
     const navigate = useNavigate();
-    const { user, isLoaded } = useUser();
     const { search } = useLocation();
     const params = new URLSearchParams(search);
     const selected = params.get("selected");
+    // const [openUICustomLoading, setOpenUICustomLoading] = useState(false);
+    const [redirectLoading, setRedirectLoading] = useState(false);
+    // const [openDialogLoading, setOpenDialogLoading] = useState(false);
 
     const initial = useMemo(() => planFromParam(selected)?.id ?? "", [selected]);
     const [selectedId, setSelectedId] = useState(initial);
+
+    const selectedPlanIdRef = useRef("");
+    const selectedPlanTierRef = useRef("");
+    const priceRef = useRef(0);
+
+    const CHECKOUT_URL = PAYOS_CHECKOUT_URL;
+    const RETURN_URL = PAYOS_RETURN_URL;
+    const CANCEL_URL = PAYOS_CANCEL_URL;
 
     useEffect(() => {
         setSelectedId(planFromParam(selected)?.id ?? "");
@@ -88,22 +101,42 @@ export default function PackPaymentPage() {
         [selectedId, selected],
     );
 
+    useEffect(() => {
+        if (selectedPlan) {
+            selectedPlanIdRef.current = selectedPlan.id;
+            selectedPlanTierRef.current = selectedPlan.tier;
+            // strip non-digits to get numeric price (e.g., "49,000" -> 49000)
+            priceRef.current = Number(String(selectedPlan.price).replace(/[^\d]/g, ""));
+        } else {
+            selectedPlanIdRef.current = "";
+            selectedPlanTierRef.current = "";
+            priceRef.current = 0;
+        }
+    }, [selectedPlan]);
+
     const handleChoose = (id) => setSelectedId(id);
     const handleBack = () => navigate(-1);
 
-    const ensureAuthAndProceed = (selectedPlanId) => {
-        const desired = `/landlord/payments/package/confirm?selected=${encodeURIComponent(selectedPlanId)}`;
-        // if Clerk not loaded yet, wait a moment (fallback)
-        if (!isLoaded) {
-            // optimistic redirect to login if not loaded quickly
-            return navigate(`/login-callback?returnTo=${encodeURIComponent(desired)}`);
+    const getCheckoutUrl = async () => {
+        // build order body
+        // send request to backend
+        // receive checkout url
+        try {
+            const orderData = {
+                tier: selectedPlanTierRef.current,
+                price: Number(priceRef.current),
+                returnUrl: RETURN_URL,
+                cancelUrl: CANCEL_URL,
+            };
+            let response = await convexAction(api.functions.payos.createPayOSCheckoutUrl, { orderData });
+            // if (!response || response.error != 0) throw new Error("Call Api failed: ");
+            console.log("che", response);
+            const checkoutUrl = response;
+            window.location.href = checkoutUrl;
+        } catch (error) {
+            console.error("Error redirecting to payment link:", error);
+            alert("Failed to redirect to payment link");
         }
-        if (!user) {
-            // redirect to your login callback; after login redirect back to desired page
-            return navigate(`/login-callback?returnTo=${encodeURIComponent(desired)}`);
-        }
-        // user present, continue to confirmation/payment page
-        navigate(desired);
     };
 
     return (
@@ -241,20 +274,21 @@ export default function PackPaymentPage() {
                                         <Button
                                             variant="contained"
                                             color="primary"
+                                            onClick={getCheckoutUrl}
+                                            disabled={redirectLoading}
+                                            className="!bg-[#5D5FEF] !normal-case"
                                             fullWidth
-                                            onClick={() => ensureAuthAndProceed(selectedPlan.id)}
                                             sx={{ textTransform: "none", fontWeight: 700 }}
                                         >
                                             Tiếp tục thanh toán
-                                        </Button>
-                                        <Button
-                                            variant="outlined"
-                                            color="primary"
-                                            fullWidth
-                                            onClick={() => setSelectedId("")}
-                                            sx={{ textTransform: "none" }}
-                                        >
-                                            Đổi gói
+                                            {redirectLoading ? (
+                                                <>
+                                                    {" "}
+                                                    &nbsp; <CircularProgress className="!text-white" size={20} />
+                                                </>
+                                            ) : (
+                                                ""
+                                            )}
                                         </Button>
                                     </Stack>
                                 </Box>

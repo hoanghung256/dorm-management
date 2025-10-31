@@ -22,6 +22,8 @@ import type * as functions_expenses from "../functions/expenses.js";
 import type * as functions_invoices from "../functions/invoices.js";
 import type * as functions_notifications from "../functions/notifications.js";
 import type * as functions_payments from "../functions/payments.js";
+import type * as functions_payos from "../functions/payos.js";
+import type * as functions_payosMutations from "../functions/payosMutations.js";
 import type * as functions_renters from "../functions/renters.js";
 import type * as functions_rooms from "../functions/rooms.js";
 import type * as functions_subscriptions from "../functions/subscriptions.js";
@@ -47,6 +49,8 @@ declare const fullApi: ApiFromModules<{
   "functions/invoices": typeof functions_invoices;
   "functions/notifications": typeof functions_notifications;
   "functions/payments": typeof functions_payments;
+  "functions/payos": typeof functions_payos;
+  "functions/payosMutations": typeof functions_payosMutations;
   "functions/renters": typeof functions_renters;
   "functions/rooms": typeof functions_rooms;
   "functions/subscriptions": typeof functions_subscriptions;

@@ -1,5 +1,5 @@
 // convex/functions/payments.js
-import { mutation, query } from "../_generated/server";
+import { action, mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 
 export const listByInvoice = query({

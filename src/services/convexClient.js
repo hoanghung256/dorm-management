@@ -14,6 +14,11 @@ export function getConvexClient() {
     return client;
 }
 
+export async function convexAction(func, args) {
+    const c = getConvexClient();
+    return await c.action(func, args);
+}
+
 export async function convexQueryOneTime(func, args) {
     const c = getConvexClient();
     return await c.query(func, args);
