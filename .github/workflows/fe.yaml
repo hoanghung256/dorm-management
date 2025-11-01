@@ -29,7 +29,7 @@ jobs:
                   echo "VITE_PAYOS_CHECKSUM_KEY=${{ secrets.PAYOS_CHECKSUM_KEY }}" >> .env.production
                   echo "VITE_PAYOS_CHECKOUT_URL=${{ secrets.PAYOS_CHECKOUT_URL }}" >> .env.production
                   echo "VITE_PAYOS_RETURN_URL=${{ secrets.PAYOS_RETURN_URL }}" >> .env.production
-                  echo "VITE_PAYOS_CANCEL_URL=${{ secrets.PAYOS_CANCEL_URL }}" >>
+                  echo "VITE_PAYOS_CANCEL_URL=${{ secrets.PAYOS_CANCEL_URL }}" >> .env.production
                   echo "NODE_ENV=production" >> .env.production
 
             - name: Install dependencies
