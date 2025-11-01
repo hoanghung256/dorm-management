@@ -24,6 +24,12 @@ jobs:
                   echo "VITE_CLERK_PUBLISHABLE_KEY=${{ secrets.CLERK_PUBLISHABLE_KEY }}" >> .env.production
                   echo "VITE_CONVEX_URL=${{ secrets.CONVEX_URL }}" >> .env.production
                   echo "VITE_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}" >> .env.production
+                  echo "VITE_PAYOS_API_KEY=${{ secrets.PAYOS_API_KEY }}" >> .env.production
+                  echo "VITE_PAYOS_CLIENT_KEY=${{ secrets.PAYOS_CLIENT_KEY }}" >> .env.production
+                  echo "VITE_PAYOS_CHECKSUM_KEY=${{ secrets.PAYOS_CHECKSUM_KEY }}" >> .env.production
+                  echo "VITE_PAYOS_CHECKOUT_URL=${{ secrets.PAYOS_CHECKOUT_URL }}" >> .env.production
+                  echo "VITE_PAYOS_RETURN_URL=${{ secrets.PAYOS_RETURN_URL }}" >> .env.production
+                  echo "VITE_PAYOS_CANCEL_URL=${{ secrets.PAYOS_CANCEL_URL }}" >>
                   echo "NODE_ENV=production" >> .env.production
 
             - name: Install dependencies

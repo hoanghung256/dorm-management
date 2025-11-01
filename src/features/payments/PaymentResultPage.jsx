@@ -12,11 +12,7 @@ export default function PaymentResultPage() {
 
     const tier = useMemo(() => {
         const sel = (searchParams.get("selected") || "").toLowerCase();
-        if (sel === "pro" || sel === "professional") return "Pro";
-        if (sel === "basic") return "Basic";
-        const landlordTier = user?.detail?.subscriptionTier;
-        if (landlordTier === "Pro" || landlordTier === "Basic") return landlordTier;
-        return "";
+        return sel;
     }, [searchParams, user?.detail?.subscriptionTier]);
 
     useEffect(() => {
@@ -27,7 +23,7 @@ export default function PaymentResultPage() {
 
     const verifyPayment = async (orderCode, landlordId, tier) => {
         try {
-            console.log("tier", tier);
+            console.log("tier", landlordId, tier);
             const res = await convexAction(api.functions.payos.verifyPayOSPayment, { orderCode, landlordId, tier });
             console.log("verify", res);
         } catch (e) {

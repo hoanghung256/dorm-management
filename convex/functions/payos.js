@@ -1,8 +1,13 @@
 "use node";
-import { action, mutation, query } from "../_generated/server";
+import { action } from "../_generated/server";
 import { v } from "convex/values";
 import { createHmac } from "crypto";
 import { internal } from "../_generated/api";
+
+// Call PayOS API to create checkout session
+const PAYOS_API_KEY = process.env.PAYOS_API_KEY || "";
+const PAYOS_CLIENT_ID = process.env.PAYOS_CLIENT_ID || "";
+const CHECK_SUM_KEY = process.env.CHECK_SUM_KEY || "";
 
 export const createPayOSCheckoutUrl = action({
     args: {
@@ -14,27 +19,22 @@ export const createPayOSCheckoutUrl = action({
         }),
     },
     handler: async (ctx, { orderData }) => {
-        // Call PayOS API to create checkout session
-        const PAYOS_API_URL = "https://api-merchant.payos.vn/v2/payment-requests";
-        const PAYOS_API_KEY = process.env.PAYOS_API_KEY;
-        const PAYOS_CLIENT_ID = process.env.PAYOS_CLIENT_ID;
         // PayOS expects an integer order code; use a timestamp-based integer
         const ORDER_CODE = Date.now();
 
         // Ensure the return/cancel URLs carry the selected tier so the result page can read it
         const selectedId = (orderData.tier || "").toLowerCase() === "pro" ? "professional" : "basic";
-        const returnUrlWithTier = appendQueryParam(orderData.returnUrl || "", "selected", selectedId);
-        const cancelUrlWithTier = appendQueryParam(orderData.cancelUrl || "", "selected", selectedId);
-        const response = await fetch(PAYOS_API_URL, {
+        console.log("Selected ID:", selectedId);
+        const hashSelectedId = hashSelectedTier(selectedId);
+        const returnUrlWithTier = appendQueryParam(orderData.returnUrl || "", "selected", hashSelectedId);
+        const cancelUrlWithTier = appendQueryParam(orderData.cancelUrl || "", "selected", hashSelectedId);
+        const response = await fetch("https://api-merchant.payos.vn/v2/payment-requests", {
             method: "POST",
 
             headers: {
                 "Content-Type": "application/json",
-                // Authorization: `Bearer ${PAYOS_API_KEY}`,
-                // "x-client-id": PAYOS_CLIENT_ID,
-                "x-client-id": "",
-                // "x-api-key": PAYOS_API_KEY,
-                "x-api-key": "",
+                "x-client-id": PAYOS_CLIENT_ID,
+                "x-api-key": PAYOS_API_KEY,
             },
             body: JSON.stringify({
                 orderCode: ORDER_CODE,
@@ -76,8 +76,8 @@ export const verifyPayOSPayment = action({
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
-                    "x-client-id": "",
-                    "x-api-key": "",
+                    "x-client-id": PAYOS_CLIENT_ID,
+                    "x-api-key": PAYOS_API_KEY,
                 },
             });
 
@@ -124,10 +124,15 @@ export const verifyPayOSPayment = action({
             if (paid) {
                 // Update landlord subscription tier upon successful payment
                 console.log("data", landlordId, tier);
-                await ctx.runMutation(internal.functions.payosMutations.updateLandlordTier, {
-                    landlordId,
-                    tier,
-                });
+                const rawTier = findTierFromHash(tier);
+                if (rawTier) {
+                    await ctx.runMutation(internal.functions.payosMutations.updateLandlordTier, {
+                        landlordId,
+                        tier: rawTier, // can be "professional"|"basic"|"Pro"|"Basic"; mutation normalizes
+                    });
+                } else {
+                    return { message: "Unable to determine tier from payment data" };
+                }
 
                 return { success: true, paid: true, message: "Payment verified and subscription updated." };
             }
@@ -149,8 +154,6 @@ export const verifyPayOSPayment = action({
 // Note: updateLandlordTier mutation moved to functions/payosMutations.js (non-node file)
 
 function buildSignature(amount, cancelUrl, description, orderCode, returnUrl) {
-    const CHECK_SUM_KEY = "";
-
     const rawString = `amount=${amount}&cancelUrl=${cancelUrl}&description=${description}&orderCode=${orderCode}&returnUrl=${returnUrl}`;
 
     return createHmac("sha256", CHECK_SUM_KEY).update(rawString).digest("hex");
@@ -170,18 +173,18 @@ async function normalizeResponseStream(reader) {
 
 function appendQueryParam(urlStr, key, value) {
     try {
-        if (!urlStr) return "";
-        const url = new URL(urlStr, "http://localhost:5173/landlord/payments/package/result/");
-        // If urlStr is absolute, base is ignored; if relative, base allows URL constructor usage
+        const isAbsolute = /^https?:\/\//i.test(urlStr);
+        const publicDomain = "https://tubbiestech.site";
+        const baseForRelative = publicDomain || "http://localhost:5173";
+        const url = new URL(urlStr, baseForRelative);
         url.searchParams.set(key, value);
         console.log("appended url", url.toString());
-        // Preserve relative form if original was relative
-        if (!/^https?:\/\//i.test(urlStr)) {
+        if (!isAbsolute) {
+            if (publicDomain) return url.toString();
             return url.pathname + (url.search || "") + (url.hash || "");
         }
         return url.toString();
     } catch {
-        // Fallback: naive append
         const sep = urlStr.includes("?") ? "&" : "?";
         return `${urlStr}${sep}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
     }
@@ -189,5 +192,15 @@ function appendQueryParam(urlStr, key, value) {
 
 function hashSelectedTier(selected) {
     const hashed = `selected=${selected}`;
-    return createHmac("sha256").update(hashed).digest("hex");
+    return createHmac("sha256", CHECK_SUM_KEY).update(hashed).digest("hex");
+}
+
+function findTierFromHash(hash) {
+    const tiers = ["basic", "professional"];
+    for (const tier of tiers) {
+        if (hash === hashSelectedTier(tier)) {
+            return tier;
+        }
+    }
+    return null;
 }

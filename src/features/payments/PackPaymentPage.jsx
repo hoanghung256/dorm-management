@@ -26,7 +26,7 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import { convexAction } from "../../services/convexClient";
 import { api } from "../../../convex/_generated/api";
-import { PAYOS_CANCEL_URL, PAYOS_CHECKOUT_URL, PAYOS_RETURN_URL } from "../../constants/env";
+import { PAYOS_CANCEL_URL, PAYOS_RETURN_URL } from "../../constants/env";
 
 const plans = [
     {
@@ -88,10 +88,6 @@ export default function PackPaymentPage() {
     const selectedPlanTierRef = useRef("");
     const priceRef = useRef(0);
 
-    const CHECKOUT_URL = PAYOS_CHECKOUT_URL;
-    const RETURN_URL = PAYOS_RETURN_URL;
-    const CANCEL_URL = PAYOS_CANCEL_URL;
-
     useEffect(() => {
         setSelectedId(planFromParam(selected)?.id ?? "");
     }, [selected]);
@@ -125,8 +121,8 @@ export default function PackPaymentPage() {
             const orderData = {
                 tier: selectedPlanTierRef.current,
                 price: Number(priceRef.current),
-                returnUrl: RETURN_URL,
-                cancelUrl: CANCEL_URL,
+                returnUrl: PAYOS_RETURN_URL,
+                cancelUrl: `${PAYOS_CANCEL_URL}${selectedPlanTierRef.current}`,
             };
             let response = await convexAction(api.functions.payos.createPayOSCheckoutUrl, { orderData });
             // if (!response || response.error != 0) throw new Error("Call Api failed: ");
