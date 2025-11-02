@@ -7,7 +7,7 @@ export default defineSchema({
     users: defineTable({
         clerkUserId: v.string(),
         email: v.string(),
-        role: v.optional(v.union(v.literal("landlord"), v.literal("renter"))),
+        role: v.optional(v.union(v.literal("admin"), v.literal("landlord"), v.literal("renter"))),
         name: v.optional(v.string()),
         birthDate: v.optional(v.string()),
         phone: v.optional(v.string()),

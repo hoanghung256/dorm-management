@@ -46,7 +46,12 @@ function LoginCallback() {
         }
         if (fetchedUser) {
             if (fetchedUser.role === "landlord") navigate("/landlord/dorms");
-            if (fetchedUser.role === "renter") navigate("/paymentSubmit");
+            else if (fetchedUser.role === "renter") navigate("/paymentSubmit");
+            else if (fetchedUser.role === "admin") navigate("/admin");
+            else {
+                // default fallback for unknown/other roles
+                navigate("/");
+            }
         }
     }, [user, fetchedUser]);
 

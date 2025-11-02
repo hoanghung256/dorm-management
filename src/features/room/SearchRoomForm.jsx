@@ -35,7 +35,6 @@ export default function SearchRoomForm({ search = "", status = "all", onSearchCh
                 alignItems: "center",
                 mb: 2,
                 width: "100%",
-                maxWidth: 990,
             }}
         >
             <TextField
@@ -57,11 +56,11 @@ export default function SearchRoomForm({ search = "", status = "all", onSearchCh
                 onClick={handleOpenMenu}
                 startIcon={<FilterIcon />}
                 size="small"
-                sx={{ 
-                    whiteSpace: "nowrap", 
+                sx={{
+                    whiteSpace: "nowrap",
                     justifySelf: { sm: "end" },
                     minWidth: "auto",
-                    px: 2
+                    px: 2,
                 }}
             >
                 Lọc

@@ -450,7 +450,6 @@ export default function RoomPage() {
                         mb: 3,
                         mt: 3,
                         width: "100%",
-                        maxWidth: 990,
                     }}
                 >
                     <Box>
@@ -488,7 +487,7 @@ export default function RoomPage() {
 
                 {/* Summary + Search */}
                 {rooms.length > 0 && (
-                    <Box sx={{ mb: 2, width: "100%", maxWidth: 990 }}>
+                    <Box sx={{ mb: 2, width: "100%" }}>
                         {(() => {
                             const total = rooms.length;
                             const occupied = rooms.filter((r) => r.status === "occupied").length;
